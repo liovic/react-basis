@@ -1,3 +1,5 @@
+// src/core/math.ts
+
 export const calculateCosineSimilarity = (A: number[], B: number[]): number => {
   let dot = 0, magA = 0, magB = 0;
   for (let i = 0; i < A.length; i++) {

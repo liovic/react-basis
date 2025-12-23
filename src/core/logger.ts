@@ -1,3 +1,5 @@
+// src/core/logger.ts
+
 const STYLES = {
   header: "background: #f39c12; color: white; font-weight: bold; padding: 4px; border-radius: 4px;",
   boot: "background: #27ae60; color: white; padding: 2px 5px; border-radius: 3px 0 0 3px; font-weight: bold;",
