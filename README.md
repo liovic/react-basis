@@ -27,22 +27,6 @@ Mathematically, your state variables $\{v_1, v_2, \dots, v_n\}$ should form a **
 
 Try the full interactive demo here: [/example](./example)
 
-This demo showcases React-Basis detecting multiple state anti-patterns in real time.
-
-**Note:** React-Basis is not yet published on npm.  
-To run this example, you need to link the local package from the root of the repo.
-
-## Setup (one-time)
-
-Open a terminal in the **root** of the repository (where `package.json` of react-basis is):
-
-```bash
-# From the root folder (../)
-npm install          # if not done already
-npm link             # creates a global link to react-basis
-
----
-
 ## 🚀 Setup & Integration
 
 To enable the mathematical monitoring of your application, follow these two steps:
