@@ -22,7 +22,7 @@ const parseLabel = (label: string) => {
 
 export const displayBootLog = (windowSize: number) => {
   console.log(
-    `%c Basis %c Neural State Monitor v4.0 | Tracking ${windowSize} vectors `,
+    `%c Basis %c State Space Auditor v1.0 | Tracking ${windowSize} vectors `,
     STYLES.boot,
     STYLES.bootSecondary
   );
