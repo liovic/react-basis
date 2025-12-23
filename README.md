@@ -3,8 +3,12 @@
 
 It observes how state variables change over time to identify strong correlations that indicate architectural redundancy.
 
+---
+
 **TL;DR:**  
 React-Basis watches your state like a mathematician: every `useState`, `useReducer`, and even `useEffect`-driven update becomes a tracked signal that turns into a time-series vector. When two signals move identically over time, they're collinear (redundant) - and Basis instantly flags it with location, math details, and a copy-paste refactor to derived state.
+
+---
 
 It observes how state variables change over time to identify strong correlations that indicate architectural redundancy.
 
