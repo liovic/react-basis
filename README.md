@@ -58,18 +58,22 @@ function MyComponent() {
 
 Basis utilizes a three-tier instrumentation pipeline to audit your system:
 
-1.  **The Compiler Layer (Babel AST):** A build-time plugin performs static analysis, injecting the **filename** and **variable name** directly into the runtime calls. This transforms an anonymous execution graph into a **structured state map**.
-2.  **The Runtime Layer:** Every state transition is intercepted. Basis groups updates occurring within a **16ms window** into a single "System Tick" and maps each variable to a vector in **$\mathbb{R}^{50}$**.
-*   **Discrete Signal Mapping:** Each state variable is mapped to a vector in **$\mathbb{R}^{50}$**.
-    *   `1` = State transition occurred in this tick.
-    *   `0` = State remained stagnant.
-3.  **The Analysis Layer:** 
-    In pure Linear Algebra, proving independence for $N$ variables requires solving the equation $a_1v_1 + \dots + a_nv_n = 0$ via Gaussian elimination or Singular Value Decomposition (SVD). Performing $O(n^3)$ matrix operations in a browser runtime for 100+ variables would be computationally prohibitive.
+### 1. The Compiler Layer (Babel AST)
+A build-time plugin performs static analysis, injecting the **filename** and **variable name** directly into the runtime calls. This transforms an anonymous execution graph into a **structured state map**.
 
-    To maintain real-time performance, Basis uses **Cosine Similarity** as a high-speed heuristic ($O(n)$) to detect **collinearity**:
-    It calculates the **Cosine Similarity** ($\cos \theta$) between updates:
-    $$ \text{similarity} = \cos(\theta) = \frac{\mathbf{A} \cdot \mathbf{B}}{\|\mathbf{A}\| \|\mathbf{B}\|} $$
-    If $\cos(\theta) \approx 1.00$, the variables are collinear, and Basis triggers a redundancy alert.
+### 2. The Runtime Layer (Signal Mapping)
+Every state transition is intercepted. Basis groups updates occurring within a **16ms window** into a single "System Tick." Each state variable is mapped to a vector in $\mathbb{R}^{50}$.
+*   `1` = State transition occurred in this tick.
+*   `0` = State remained stagnant.
+
+### 3. The Analysis Layer (The Heuristic)
+In pure Linear Algebra, proving independence for $N$ variables requires solving the equation $a_1v_1 + \dots + a_nv_n = 0$. Performing $O(n^3)$ matrix operations in a browser runtime for 100+ variables would be computationally prohibitive.
+
+To maintain real-time performance, Basis uses **Cosine Similarity** as a high-speed heuristic ($O(n)$) to detect **collinearity**:
+
+$$ \text{similarity} = \cos(\theta) = \frac{\mathbf{A} \cdot \mathbf{B}}{\|\mathbf{A}\| \|\mathbf{B}\|} $$
+
+If $\cos(\theta) \approx 1.00$, the vectors are collinear (linearly dependent), and the engine triggers a redundancy alert.
 
 ---
 
@@ -104,7 +108,7 @@ Basis provides high-end diagnostic feedback directly in your browser console:
 
 *   **📍 Location Tracking:** Identifies exact files and variable names causing redundancy.
 *   **🛠️ Refactor Snippets:** Provides dark-themed code blocks you can copy-paste to fix your state architecture.
-*   **📊 System Health Matrix:** Call `printBasisReport()` to see your **Efficiency Score** and the full **Correlation Matrix** of your application.
+*   **📊 Health Matrix:** Call `printBasisReport()` to see your **Efficiency Score** and the full **Correlation Matrix** of your application.
 
 ---
 
@@ -129,7 +133,7 @@ To satisfy this theorem in the context of application state:
 1.  **Linear Independence:** No state variable in the list can be expressed as a linear combination of the others. If a state $v_n$ can be derived from $\{v_1, \dots, v_{n-1}\}$, the list is linearly dependent and contains redundancy.
 2.  **Spanning the Space:** The list of state variables must contain enough information to represent every possible configuration of the user interface.
 
-**React-Basis** ensures that your state list is a true Basis by identifying and flagging vectors that fail the test of linear independence.
+React-Basis ensures that your state list is a true Basis by identifying and flagging vectors that fail the test of linear independence.
 
 > *"Linear algebra is the study of linear maps on finite-dimensional vector spaces."*  
 > — **Sheldon Axler**
