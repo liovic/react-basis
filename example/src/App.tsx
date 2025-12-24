@@ -1,4 +1,4 @@
-import { BasisProvider, useContext } from 'react-basis'
+import { BasisProvider, useContext } from 'react-state-basis'
 import { AuthProvider, AuthContext } from './AuthContext'
 import { ThemeProvider, ThemeContext } from './ThemeContext'
 import { WeatherLab } from './WeatherLab'

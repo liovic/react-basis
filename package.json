@@ -1,6 +1,6 @@
 {
-  "name": "react-basis",
-  "version": "1.0.0",
+  "name": "react-state-basis",
+  "version": "0.1.0",
   "description": "A linear algebra-powered React architectural tool that detects redundant state and synchronization anti-patterns by modeling state transitions as vectors in a basis.",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -39,15 +39,15 @@
     "babel-plugin",
     "architecture"
   ],
-  "author": "Your Name <your.email@example.com>",
+  "author": "LP",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/react-basis.git"
+    "url": "git+https://github.com/liovic/react-state-basis.git"
   },
-  "homepage": "https://github.com/yourusername/react-basis#readme",
+  "homepage": "https://github.com/liovic/react-state-basis#readme",
   "bugs": {
-    "url": "https://github.com/yourusername/react-basis/issues"
+    "url": "https://github.com/liovic/react-state-basis/issues"
   },
   "peerDependencies": {
     "react": ">=16.8"

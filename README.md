@@ -1,4 +1,4 @@
-# 📐 REACT-BASIS
+# 📐 REACT-STATE-BASIS
 ### **Behavioral State Analysis for React**
 
 It observes how state variables change over time to identify strong correlations that indicate architectural redundancy.
@@ -6,11 +6,11 @@ It observes how state variables change over time to identify strong correlations
 ---
 
 **TL;DR:**  
-React-Basis watches your state like a mathematician: every `useState`, `useReducer`, and even `useEffect`-driven update becomes a tracked signal that turns into a time-series vector. When two signals move identically over time, they're collinear (redundant) - and Basis instantly flags it with location, math details, and a copy-paste refactor to derived state.
+React-State-Basis watches your state like a mathematician: every `useState`, `useReducer`, and even `useEffect`-driven update becomes a tracked signal that turns into a time-series vector. When two signals move identically over time, they're collinear (redundant) - and Basis instantly flags it with location, math details, and a copy-paste refactor to derived state.
 
 ---
 
-**React-basis** is a real-time architectural auditing engine that treats a React application as a **dynamic system of discrete-time vectors**. Instead of static linting, which only analyzes syntax, Basis monitors the **State Space Topology** of your application to detect mathematical redundancy (collinearity) and synchronization anti-patterns in real-time.
+**React-State-Basis** is a real-time architectural auditing engine that treats a React application as a **dynamic system of discrete-time vectors**. Instead of static linting, which only analyzes syntax, Basis monitors the **State Space Topology** of your application to detect mathematical redundancy (collinearity) and synchronization anti-patterns in real-time.
 
 Inspired by the work of **Sheldon Axler** (*"Linear Algebra Done Right"*), Basis aims to enforce a mathematically optimal "Source of Truth" by ensuring your application state forms a **Basis**.
 
@@ -42,7 +42,7 @@ To enable the mathematical monitoring of your application, follow these two step
 Wrap your application root (e.g., `main.tsx` or `App.tsx`) with the `BasisProvider`. Setting `debug={true}` enables the real-time diagnostic dashboard and the visual system status monitor.
 
 ```tsx
-import { BasisProvider } from 'react-basis';
+import { BasisProvider } from 'react-state-basis';
 
 export default function Root() {
   return (
@@ -54,21 +54,21 @@ export default function Root() {
 ```
 
 ### 2. Use Drop-in Replacement Imports
-Replace your standard React hook imports with `react-basis`. This allows the engine to instrument your state updates without changing your component logic.
+Replace your standard React hook imports with `react-state-basis`. This allows the engine to instrument your state updates without changing your component logic.
 
 ```tsx
 // ❌ Change this:
 // import { useState, useEffect } from 'react';
 
 // ✅ To this:
-import { useState, useEffect, useMemo, useContext } from 'react-basis';
+import { useState, useEffect, useMemo, useContext } from 'react-state-basis';
 
 function MyComponent() {
   const [data, setData] = useState([]); // Automatically vectorized and tracked
 }
 ```
 
-> Note: React-Basis includes an optional Babel plugin that automatically labels state variables for richer diagnostics.
+> Note: React-State-Basis includes an optional Babel plugin that automatically labels state variables for richer diagnostics.
 
 
 ---
@@ -88,7 +88,7 @@ Every state transition is intercepted. Basis groups updates occurring within a *
 ### 3. The Analysis Layer (The Heuristic)
 In pure Linear Algebra, proving linear independence for $N$ variables requires solving the system $a_1v_1 + \dots + a_nv_n = 0$. Using algorithms like Gaussian elimination or SVD to determine the **Rank** of the state matrix has a computational complexity of $O(N^3)$. Running this in a browser runtime for every state update would be prohibitively expensive.
 
-To maintain real-time performance, React-Basis uses **Cosine Similarity** as a high-speed heuristic ($O(D)$, where $D$ is the vector dimension) to detect **pairwise collinearity**:
+To maintain real-time performance, React-State-Basis uses **Cosine Similarity** as a high-speed heuristic ($O(D)$, where $D$ is the vector dimension) to detect **pairwise collinearity**:
 
 $$ \text{similarity} = \cos(\theta) = \frac{\mathbf{A} \cdot \mathbf{B}}{\Vert \mathbf{A} \Vert \Vert \mathbf{B} \Vert} $$
 
@@ -152,19 +152,19 @@ To satisfy this theorem in the context of application state:
 1.  **Linear Independence:** No state variable in the list can be expressed as a linear combination of the others. If a state $v_n$ can be derived from $\{v_1, \dots, v_{n-1}\}$, the list is linearly dependent and contains redundancy.
 2.  **Spanning the Space:** The list of state variables must contain enough information to represent every possible configuration of the user interface.
 
-React-Basis ensures that your state list is a true Basis by identifying and flagging vectors that fail the test of linear independence.
+React-State-Basis ensures that your state list is a true Basis by identifying and flagging vectors that fail the test of linear independence.
 
 > *"Linear algebra is the study of linear maps on finite-dimensional vector spaces."*  
 > - **Sheldon Axler**
 
-React-Basis bridges the gap between abstract algebra and UI engineering.
+React-State-Basis bridges the gap between abstract algebra and UI engineering.
 By ensuring your application state forms an independent, non-redundant basis, it helps you build software that is inherently more stable, efficient, and easier to reason about.
 ---
 
 ### 📜 Implementation of the Linear Dependency Lemma
 According to Axler (*Lemma 2.21*), in a linearly dependent **list** of vectors, there exists an index $j$ such that $v_j$ is in the span of the **preceding** vectors ($v_1, \dots, v_{j-1}$).
 
-**React-Basis** implements this sequential logic to audit your state:
+**React-State-Basis** implements this sequential logic to audit your state:
 
 1.  **The Ordered List:** Every state variable is treated as an element in an ordered list $(v_1, v_2, \dots, v_n)$ based on its registration order in the application.
 2.  **Sequential Discovery:** As time progresses, the engine monitors the list. It doesn't just look for "similar" vectors; it looks for vectors that **fail to add a new dimension** to the subspace generated by the vectors that came before them.
@@ -175,24 +175,24 @@ According to Axler (*Lemma 2.21*), in a linearly dependent **list** of vectors, 
 
 ## ⚠️ Design Constraints & Heuristics
 
-React-Basis uses probabilistic, time-windowed heuristics to approximate linear dependence.
+React-State-Basis uses probabilistic, time-windowed heuristics to approximate linear dependence.
 As with any runtime analysis:
 
 - Rarely-updated states may appear correlated by chance
 - High-frequency UI interactions may trigger conservative warnings
 - Results are advisory, not prescriptive
 
-React-Basis is designed to **surface architectural questions**, not enforce correctness.
+React-State-Basis is designed to **surface architectural questions**, not enforce correctness.
 
 ---
 
 ## ❓ Frequently Asked Questions
 
-### **Is React-Basis a replacement for React DevTools or linters?**
+### **Is React-State-Basis a replacement for React DevTools or linters?**
 No.
 
-React-Basis complements existing tools.  
-Linters analyze **code structure**, and React DevTools show **component behavior**. React-Basis analyzes **state relationships over time**-something neither tool is designed to detect.
+React-State-Basis complements existing tools.  
+Linters analyze **code structure**, and React DevTools show **component behavior**. React-State-Basis analyzes **state relationships over time**-something neither tool is designed to detect.
 
 It answers questions like:
 - *“Why do these two states always change together?”*
@@ -204,15 +204,15 @@ It answers questions like:
 ### **Does this change React behavior or execution order?**
 No.
 
-React-Basis **does not modify React’s scheduling, rendering, or reconciliation**.  
+React-State-Basis **does not modify React’s scheduling, rendering, or reconciliation**.  
 It observes state updates at runtime and logs diagnostics during development.
 
-Removing React-Basis restores your application to standard React behavior with no residual effects.
+Removing React-State-Basis restores your application to standard React behavior with no residual effects.
 
 ---
 
 ### **Is this safe to use in production?**
-React-Basis is designed for **development-time analysis**.
+React-State-Basis is designed for **development-time analysis**.
 
 While it is technically safe to run in production, it:
 - adds runtime overhead
@@ -224,7 +224,7 @@ For production builds, simply switch your imports back to `'react'`.
 ---
 
 ### **How accurate is the redundancy detection?**
-React-Basis uses **time-windowed behavioral analysis**, not formal proofs.
+React-State-Basis uses **time-windowed behavioral analysis**, not formal proofs.
 
 This means:
 - Strong, consistent correlations are highly reliable indicators of redundancy
@@ -237,17 +237,17 @@ All results are **advisory** and should be interpreted as architectural signals,
 ### **Can this detect all redundant state?**
 No-and that’s intentional.
 
-React-Basis detects **behavioral redundancy**, not semantic equivalence.  
+React-State-Basis detects **behavioral redundancy**, not semantic equivalence.  
 Two states may contain the same *data* but update independently, which is architecturally valid.
 
-React-Basis only flags redundancy when two states behave as a single information dimension over time.
+React-State-Basis only flags redundancy when two states behave as a single information dimension over time.
 
 ---
 
 ### **Why not just use selectors or derived state manually?**
-You should-and React-Basis encourages that.
+You should-and React-State-Basis encourages that.
 
-The challenge is *finding* where derived state should exist in large or evolving codebases. React-Basis helps identify:
+The challenge is *finding* where derived state should exist in large or evolving codebases. React-State-Basis helps identify:
 - state that should be derived
 - state that is unintentionally synchronized
 - state that adds no new information
@@ -257,7 +257,7 @@ It surfaces opportunities for refactoring, not rules you must follow.
 ---
 
 ### **Does this work with Redux, Zustand, or other state managers?**
-React-Basis currently instruments **React hooks directly**.
+React-State-Basis currently instruments **React hooks directly**.
 
 However, the underlying model is store-agnostic. Any system with:
 - discrete state updates
@@ -269,27 +269,27 @@ could theoretically be analyzed using the same approach.
 ---
 
 ### **What about performance?**
-React-Basis is optimized for real-time use in development.
+React-State-Basis is optimized for real-time use in development.
 
 Key design choices:
 - Fixed-size sliding windows
 - O(D) similarity checks
 - Batched analysis every N ticks
 
-For typical applications, overhead is negligible. For extremely high-frequency updates (e.g., animations), React-Basis may emit conservative warnings.
+For typical applications, overhead is negligible. For extremely high-frequency updates (e.g., animations), React-State-Basis may emit conservative warnings.
 
 ---
 
 ### **Is this “formal verification”?**
 No.
 
-React-Basis performs **runtime architectural auditing**, not formal mathematical verification.  
+React-State-Basis performs **runtime architectural auditing**, not formal mathematical verification.  
 It applies concepts from linear algebra to **observe and analyze behavior**, not to prove correctness.
 
 ---
 
 ### **Who is this tool for?**
-React-Basis is best suited for:
+React-State-Basis is best suited for:
 - Medium to large React applications
 - Codebases with complex state interactions
 - Engineers debugging synchronization bugs
@@ -309,7 +309,7 @@ If two state variables always change together, they span the same dimension of i
 ### **Will this ever produce false positives?**
 Yes.
 
-React-Basis favors **visibility over silence**.  
+React-State-Basis favors **visibility over silence**.  
 When in doubt, it surfaces potential issues so developers can make informed decisions.
 
 Think of it as an architectural smoke detector-not a fire marshal.

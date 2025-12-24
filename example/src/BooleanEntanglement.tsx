@@ -1,4 +1,4 @@
-import { useState } from 'react-basis'
+import { useState } from 'react-state-basis'
 
 export const BooleanEntanglement = () => {
   const [isLoading, setIsLoading] = useState(false)

@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [
     react({
       babel: {
-        plugins: [['react-basis/plugin']]
+        plugins: [['react-state-basis/plugin']]
       }
     })
   ]

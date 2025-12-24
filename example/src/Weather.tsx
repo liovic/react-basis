@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react-basis'
+import { useState, useEffect } from 'react-state-basis'
 
 export const Weather = () => {
   const [celsius, setCelsius] = useState(20)
