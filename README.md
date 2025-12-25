@@ -28,9 +28,41 @@ Mathematically, your state variables $\{v_1, v_2, \dots, v_n\}$ should form a **
 ---
 ## 🚀 See It In Action
 
-![Basis Redundancy Alerts](example/screenshots/redundancy-alerts.png)
+> ### 💡 Detecting Causal Links & Double Renders
+![alt text](./example/screenshots/causal.gif)
 
-![Basis System Health Report](example/screenshots/health-report.png)
+**The Problem:** Manually syncing `fahrenheit` via `useEffect` creates a "Double Render Cycle" (React renders once for Celsius, then again for Fahrenheit).
+
+**The Basis Solution:** Basis identifies this sequential dependency in real-time. It flags the `Causal Link` and provides a copy-paste refactor to move from expensive state synchronization to a pure **Mathematical Projection** (`useMemo`).
+
+> ### 🕸️ Identifying Boolean Entanglement
+![alt text](./example/screenshots/booleanEntanglement.gif)
+
+**The Problem:** Using multiple boolean flags (`isLoading`, `isSuccess`, `hasData`) often leads to "impossible states" and redundant updates.
+
+**The Basis Discovery:** Even though these are separate variables, Basis monitors their transition vectors and detects they are **perfectly synchronized**. 
+
+**The Insight:** It flags a **Dimension Collapse**, alerting you that 3 independent state variables are actually spanning only 1 dimension of information. It suggests consolidating them into a single state machine or a status string.
+
+> ### 🛑 Circuit Breaker (Infinite Loop Protection)
+![Infinite Loop GIF](./example/screenshots/infiniteLoopTrap.gif)
+
+**The Trap:** A recursive `useEffect` that triggers an infinite state oscillation, a common mistake that usually freezes the browser's main thread.
+
+**The Intervention:** Basis acts as a real-time stability monitor. If it detects a high-frequency state oscillation (e.g., 25 updates within 500ms), it automatically activates the **Circuit Breaker**.
+
+**The Result:** The engine forcefully halts the update chain before the browser locks up. It provides a critical diagnostic report with the exact location of the loop, allowing you to fix the bug without having to kill the browser process.
+
+### 📊 System Health & Structural Audit
+![System Health Report](./example/screenshots/systemHealthReport.gif)
+
+**System Rank & Efficiency:** Basis performs a global audit of your state space to calculate its **Mathematical Rank**—the actual number of independent information dimensions. An efficiency of **40% (Rank: 4/10)** warns you that 60% of your state is mathematically redundant.
+
+**Redundancy Clusters:** Instead of a raw matrix, Basis automatically groups "entangled" variables into **Redundancy Clusters**. Whether they are booleans in a single component or states across different contexts, Basis identifies them as a single, collapsed dimension if they move in perfect sync.
+
+**Cross-Context Discovery:** The report exposes hidden dependencies across your entire tree (e.g., identifying that `theme` in one context is perfectly correlated with `user` in another).
+
+**Architectural KPI:** Use the **Efficiency Score** as a real-time health metric. Your goal is to reach **100% Efficiency**, where every state variable in your application is linearly independent and serves as a true "Source of Truth."
 
 Try the full interactive demo here: [/example](./example)
 
