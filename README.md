@@ -34,6 +34,34 @@ Mathematically, your state variables $\{v_1, v_2, \dots, v_n\}$ should form a **
 
 Try the full interactive demo here: [/example](./example)
 
+---
+
+## How react-state-basis is different from existing tools
+
+There are many great tools for React state management and debugging. Basis doesn't try to replace them - it solves a very specific pain point that most of them don't address directly: detecting behavioral redundancy at runtime (when two or more states always change together, even if they contain different values).
+
+Here's a quick comparison:
+
+| Tool / Approach                  | Static analysis | Runtime behavior tracking | Detects temporal synchronization | Gives refactor suggestions | Overhead in production | Focus on mathematical independence |
+|----------------------------------|-----------------|----------------------------|----------------------------------|----------------------------|------------------------|-------------------------------------|
+| ESLint + plugins (no-redundant-state, etc.) | ✅             | ❌                         | ❌                               | Partial (rules only)       | None                   | ❌                                  |
+| React DevTools               | ❌             | Partial (component tree)   | ❌                               | No                         | Low                    | ❌                                  |
+| Why Did You Render           | ❌             | ✅ (render tracking)       | Partial (render causes)          | No                         | Removable              | ❌                                  |
+| Redux/Zustand DevTools       | ❌             | ✅ (store changes)         | ❌ (only store level)            | No                         | Removable              | ❌                                  |
+| react-state-basis (Basis)    | Partial (Babel) | ✅                         | ✅ (tick-based sync detection)   | ✅ (copy-paste useMemo)     | Zero (change imports)  | ✅ (inspired by linear algebra)     |
+
+Basis shines when:
+- You have manual state syncing (`setA → setB` in effects/onClick/etc.)
+- Multiple booleans or flags that are always updated together
+- You want to know which state is the true "source of truth" without guessing
+- You want runtime insights that linters can't see (because they don't run the code)
+
+It is not trying to be a full state manager, linter replacement, or performance profiler.  
+It is a specialized diagnostic tool for one very common anti-pattern - and it tries to do that one thing really well.
+
+
+---
+
 ## 🚀 Setup & Integration
 
 To enable the mathematical monitoring of your application, follow these two steps:
