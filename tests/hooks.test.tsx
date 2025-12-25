@@ -3,7 +3,15 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useState, useMemo, useEffect, useReducer, createContext, useContext, __test__ } from '../src/hooks';
+import { 
+  useState, 
+  useMemo, 
+  useEffect, 
+  useReducer, 
+  createContext, 
+  useContext, 
+  __test__ 
+} from '../src/hooks';
 import { BasisProvider } from '../src/context';
 
 describe('Hooks Deep Coverage', () => {
@@ -14,7 +22,7 @@ describe('Hooks Deep Coverage', () => {
     vi.useFakeTimers();
   });
 
-  it('useState tracks value and cleans up', () => {
+  it('useState: tracks value and cleans up', () => {
     const { result, unmount } = renderHook(() => useState(0, 'c'), { wrapper });
     act(() => result.current[1](5));
     expect(result.current[0]).toBe(5);
@@ -22,33 +30,70 @@ describe('Hooks Deep Coverage', () => {
     expect(__test__.history.has('c')).toBe(false);
   });
 
-  it('useMemo logs and memoizes', () => {
+  it('useState: handles anonymous state', () => {
+    renderHook(() => useState(0), { wrapper });
+    expect(__test__.history.has('anonymous_state')).toBe(true);
+  });
+
+  it('useMemo: logs, memoizes and handles undefined deps', () => {
     const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    renderHook(() => useMemo(() => 1, [], 'm'), { wrapper });
+    const { result } = renderHook(() => useMemo(() => 42, undefined, 'm'), { wrapper });
+    
+    expect(result.current).toBe(42);
     expect(spy).toHaveBeenCalledWith(expect.stringContaining('Valid Projection'), expect.any(String));
     spy.mockRestore();
   });
 
-  it('useReducer works and tracks', () => {
-    const { result } = renderHook(() => useReducer((s: any) => s + 1, 0, 'r'), { wrapper });
-    act(() => result.current[1]({}));
-    expect(result.current[0]).toBe(1);
-  });
-
-  it('useEffect tracks causality', () => {
+  it('useEffect: tracks causality and handles undefined deps', () => {
     const spy = vi.spyOn(console, 'groupCollapsed').mockImplementation(() => {});
     renderHook(() => {
       const [, s] = useState(0, 't');
-      useEffect(() => { s(1); }, [], 'e');
+      useEffect(() => { s(1); }, undefined, 'e');
     }, { wrapper });
+
     expect(spy).toHaveBeenCalledWith(expect.stringContaining('CAUSAL LINK'), expect.any(String));
     spy.mockRestore();
   });
 
-  it('Context hooks work correctly', () => {
-    const Ctx = createContext("d", "L");
-    const wrap = ({ children }: any) => <Ctx.Provider value="v">{children}</Ctx.Provider>;
+  describe('useReducer: complex argument patterns', () => {
+    it('handles standard initialization (2 args + label)', () => {
+      const reducer = (s: number) => s + 1;
+      const { result } = renderHook(() => useReducer(reducer, 0, 'standard_label'), { wrapper });
+      
+      act(() => result.current[1]({}));
+      expect(result.current[0]).toBe(1);
+      expect(__test__.history.has('standard_label')).toBe(true);
+    });
+
+    it('handles lazy initialization (3 args + label)', () => {
+      const reducer = (s: number) => s + 1;
+      const initFn = (arg: number) => arg + 10;
+      const { result } = renderHook(() => useReducer(reducer, 0, initFn, 'lazy_label'), { wrapper });
+      
+      expect(result.current[0]).toBe(10);
+      act(() => result.current[1]({}));
+      expect(result.current[0]).toBe(11);
+      expect(__test__.history.has('lazy_label')).toBe(true);
+    });
+
+    it('handles anonymous reducer', () => {
+      renderHook(() => useReducer((s: any) => s, 0), { wrapper });
+      expect(__test__.history.has('anonymous_reducer')).toBe(true);
+    });
+  });
+
+  it('createContext & useContext: work correctly with labels', () => {
+    const Ctx = createContext("default", "ContextLabel");
+    expect((Ctx as any)._basis_label).toBe("ContextLabel");
+
+    const wrap = ({ children }: any) => <Ctx.Provider value="provided">{children}</Ctx.Provider>;
     const { result } = renderHook(() => useContext(Ctx), { wrapper: wrap });
-    expect(result.current).toBe("v");
+    expect(result.current).toBe("provided");
+  });
+
+  it('useContext: works without provider', () => {
+    const Ctx = createContext("default");
+    const { result } = renderHook(() => useContext(Ctx), { wrapper });
+    expect(result.current).toBe("default");
   });
 });

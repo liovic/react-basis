@@ -13,7 +13,10 @@ import {
 import type { 
   Reducer, 
   Context,
-  Dispatch
+  Dispatch,
+  SetStateAction,
+  DependencyList,
+  EffectCallback
 } from 'react';
 
 import { 
@@ -35,10 +38,12 @@ export type {
   Dispatch,
   SetStateAction,
   Reducer,
-  CSSProperties
+  CSSProperties,
+  EffectCallback,
+  DependencyList
 } from 'react';
 
-export function useState<T>(initialValue: T, label?: string): [T, (val: T | ((p: T) => T)) => void] {
+export function useState<T>(initialValue: T, label?: string): [T, Dispatch<SetStateAction<T>>] {
   const [val, setVal] = reactUseState(initialValue);
   const effectiveLabel = label || 'anonymous_state';
 
@@ -47,7 +52,7 @@ export function useState<T>(initialValue: T, label?: string): [T, (val: T | ((p:
     return () => unregisterVariable(effectiveLabel);
   }, [effectiveLabel]);
 
-  const setter = useCallback((newValue: any) => {
+  const setter = useCallback((newValue: SetStateAction<T>) => {
     if (recordUpdate(effectiveLabel)) {
       setVal(newValue);
     }
@@ -56,7 +61,7 @@ export function useState<T>(initialValue: T, label?: string): [T, (val: T | ((p:
   return [val, setter];
 }
 
-export function useMemo<T>(factory: () => T, deps: any[], label?: string): T {
+export function useMemo<T>(factory: () => T, deps: DependencyList | undefined, label?: string): T {
   const effectiveLabel = label || 'anonymous_projection';
   
   reactUseEffect(() => {
@@ -65,10 +70,10 @@ export function useMemo<T>(factory: () => T, deps: any[], label?: string): T {
     }
   }, [effectiveLabel]);
 
-  return reactUseMemo(factory, deps);
+  return reactUseMemo(factory, deps || []);
 }
 
-export function useEffect(effect: () => void | (() => void), deps?: any[], label?: string) {
+export function useEffect(effect: EffectCallback, deps?: DependencyList, label?: string) {
   const effectiveLabel = label || 'anonymous_effect';
 
   reactUseEffect(() => {
@@ -79,13 +84,18 @@ export function useEffect(effect: () => void | (() => void), deps?: any[], label
   }, deps);
 }
 
-export function useReducer<S, A>(
+export function useReducer<S, A, I>(
   reducer: Reducer<S, A>,
-  initialState: S,
+  initialArg: I & S,
+  init?: any,
   label?: string
 ): [S, Dispatch<A>] {
-  const [state, dispatch] = reactUseReducer(reducer, initialState);
-  const effectiveLabel = label || 'anonymous_reducer';
+
+  const effectiveLabel = typeof init === 'string' ? init : (label || 'anonymous_reducer');
+
+  const reactInit = typeof init === 'function' ? init : undefined;
+
+  const [state, dispatch] = reactUseReducer(reducer, initialArg, reactInit);
 
   reactUseEffect(() => {
     registerVariable(effectiveLabel);
@@ -114,11 +124,11 @@ export function useContext<T>(context: Context<T>): T {
 }
 
 export const __test__ = {
-  registerVariable: engine.registerVariable,
-  unregisterVariable: engine.unregisterVariable,
-  recordUpdate: engine.recordUpdate,
-  beginEffectTracking: engine.beginEffectTracking,
-  endEffectTracking: engine.endEffectTracking,
+  registerVariable,
+  unregisterVariable,
+  recordUpdate,
+  beginEffectTracking,
+  endEffectTracking,
   history: (engine as any).history,
   currentTickBatch: (engine as any).currentTickBatch
 };

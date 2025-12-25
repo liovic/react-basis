@@ -9,48 +9,48 @@ module.exports = function (babel) {
     name: "babel-plugin-basis-transform",
     visitor: {
       CallExpression(p, state) {
-        if (!p.node.callee.name) return;
+        let calleeName = "";
+        if (t.isIdentifier(p.node.callee)) {
+          calleeName = p.node.callee.name;
+        } else if (t.isMemberExpression(p.node.callee) && t.isIdentifier(p.node.callee.property)) {
+          calleeName = p.node.callee.property.name;
+        }
 
-        const calleeName = p.node.callee.name;
-        const targetFunctions = [
-          'useState', 
-          'useMemo', 
-          'useEffect', 
-          'useReducer', 
-          'createContext'
-        ];
+        const targetFunctions = ['useState', 'useMemo', 'useEffect', 'useReducer', 'createContext'];
+        if (!calleeName || !targetFunctions.includes(calleeName)) return;
 
-        if (targetFunctions.includes(calleeName)) {
-          const filePath = state.file.opts.filename || "UnknownFile";
-          const fileName = path.basename(filePath);
+        const filePath = state.file.opts.filename || "UnknownFile";
+        const fileName = path.basename(filePath);
+        let varName = "anonymous";
 
-          let varName = "anonymous";
-
-          if (t.isVariableDeclarator(p.parent)) {
-            const id = p.parent.id;
-            
-            if (t.isArrayPattern(id)) {
-              varName = id.elements[0] && t.isIdentifier(id.elements[0]) 
-                ? id.elements[0].name 
-                : "state";
-            } else if (t.isIdentifier(id)) {
-              varName = id.name;
-            }
-          } else if (calleeName === 'useEffect') {
-            varName = `effect_L${p.node.loc?.start.line || 'unknown'}`;
+        if (t.isVariableDeclarator(p.parent)) {
+          const id = p.parent.id;
+          if (t.isArrayPattern(id)) {
+            varName = id.elements[0] && t.isIdentifier(id.elements[0]) ? id.elements[0].name : "state";
+          } else if (t.isIdentifier(id)) {
+            varName = id.name;
           }
-          const uniqueLabel = `${fileName} -> ${varName}`;
-          const labelIndexMap = {
-            'useState': 1,
-            'createContext': 1,
-            'useMemo': 2,
-            'useEffect': 2,
-            'useReducer': 2
-          };
+        } else if (calleeName === 'useEffect') {
+          varName = `effect_L${p.node.loc?.start.line || 'unknown'}`;
+        }
 
-          const targetIndex = labelIndexMap[calleeName];
-          if (p.node.arguments.length === targetIndex) {
-            p.node.arguments.push(t.stringLiteral(uniqueLabel));
+        const uniqueLabel = `${fileName} -> ${varName}`;
+
+        const args = p.node.arguments;
+
+        if (calleeName === 'useState' || calleeName === 'createContext') {
+          if (args.length === 0) args.push(t.identifier('undefined'));
+          if (args.length === 1) args.push(t.stringLiteral(uniqueLabel));
+        } 
+        
+        else if (calleeName === 'useEffect' || calleeName === 'useMemo') {
+          if (args.length === 1) args.push(t.identifier('undefined'));
+          if (args.length === 2) args.push(t.stringLiteral(uniqueLabel));
+        } 
+        
+        else if (calleeName === 'useReducer') {
+          if (args.length === 2 || args.length === 3) {
+            args.push(t.stringLiteral(uniqueLabel));
           }
         }
       }
