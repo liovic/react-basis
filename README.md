@@ -53,7 +53,18 @@ Mathematically, your state variables $\{v_1, v_2, \dots, v_n\}$ should form a **
 
 **The Result:** The engine forcefully halts the update chain before the browser locks up. It provides a critical diagnostic report with the exact location of the loop, allowing you to fix the bug without having to kill the browser process.
 
-### 📊 System Health & Structural Audit
+> ### 🌐 Cross-Context Dependency Audit
+![Cross-Context Sync GIF](./example/screenshots/initiateGlobalSync.gif)
+
+**The Scenario:** Modern apps often split state into multiple providers (e.g., `AuthContext` and `ThemeContext`). While architecturally decoupled, they are often **manually synchronized** in logic (e.g., switching to "dark theme" every time a user logs in).
+
+**The Global Discovery:** Basis performs a **Global State Space Audit**. It doesn't care where your state lives in the component tree; it only cares about the **temporal signals**. 
+
+**The Insight:** By initiating a "Global Sync," Basis identifies that `user` and `theme` are moving in perfect synchronization. It exposes **hidden coupling** between disparate parts of your architecture.
+
+**The Benefit:** This helps architects identify states that should potentially be merged or derived from a single source of truth, even when they are physically separated across different providers.
+
+> ### 📊 System Health & Structural Audit
 ![System Health Report](./example/screenshots/systemHealthReport.gif)
 
 **System Rank & Efficiency:** Basis performs a global audit of your state space to calculate its **Mathematical Rank**—the actual number of independent information dimensions. An efficiency of **40% (Rank: 4/10)** warns you that 60% of your state is mathematically redundant.
