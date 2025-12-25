@@ -2,6 +2,7 @@
     "compilerOptions": {
       "target": "ESNext", 
       "module": "ESNext",
+      "allowSyntheticDefaultImports": true,
       "allowJs": true,
       "checkJs": false,
       

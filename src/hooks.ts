@@ -9,12 +9,34 @@ import {
   createContext as reactCreateContext,
   useCallback 
 } from 'react';
+
+import type { 
+  Reducer, 
+  Context,
+  Dispatch
+} from 'react';
+
 import { 
   registerVariable, 
+  unregisterVariable, 
   recordUpdate, 
   beginEffectTracking, 
   endEffectTracking 
 } from './engine';
+
+import * as engine from './engine';
+
+export type { 
+  ReactNode, 
+  FC, 
+  PropsWithChildren, 
+  Context, 
+  ReactElement,
+  Dispatch,
+  SetStateAction,
+  Reducer,
+  CSSProperties
+} from 'react';
 
 export function useState<T>(initialValue: T, label?: string): [T, (val: T | ((p: T) => T)) => void] {
   const [val, setVal] = reactUseState(initialValue);
@@ -22,6 +44,7 @@ export function useState<T>(initialValue: T, label?: string): [T, (val: T | ((p:
 
   reactUseEffect(() => {
     registerVariable(effectiveLabel);
+    return () => unregisterVariable(effectiveLabel);
   }, [effectiveLabel]);
 
   const setter = useCallback((newValue: any) => {
@@ -38,7 +61,7 @@ export function useMemo<T>(factory: () => T, deps: any[], label?: string): T {
   
   reactUseEffect(() => {
     if ((window as any)._basis_debug !== false) {
-      console.log(`%c [Basis] Projection active: "${effectiveLabel}" `, "color: #2ecc71; font-weight: bold;");
+      console.log(`%c [Basis] Valid Projection: "${effectiveLabel}" `, "color: #2ecc71; font-weight: bold;");
     }
   }, [effectiveLabel]);
 
@@ -56,15 +79,20 @@ export function useEffect(effect: () => void | (() => void), deps?: any[], label
   }, deps);
 }
 
-export function useReducer(reducer: any, initialState: any, label?: string) {
+export function useReducer<S, A>(
+  reducer: Reducer<S, A>,
+  initialState: S,
+  label?: string
+): [S, Dispatch<A>] {
   const [state, dispatch] = reactUseReducer(reducer, initialState);
   const effectiveLabel = label || 'anonymous_reducer';
 
   reactUseEffect(() => {
     registerVariable(effectiveLabel);
+    return () => unregisterVariable(effectiveLabel);
   }, [effectiveLabel]);
 
-  const basisDispatch = useCallback((action: any) => {
+  const basisDispatch = useCallback((action: A) => {
     if (recordUpdate(effectiveLabel)) {
       dispatch(action);
     }
@@ -73,7 +101,7 @@ export function useReducer(reducer: any, initialState: any, label?: string) {
   return [state, basisDispatch];
 }
 
-export function createContext<T>(defaultValue: T, label?: string) {
+export function createContext<T>(defaultValue: T, label?: string): Context<T> {
   const context = reactCreateContext(defaultValue);
   if (label) {
     (context as any)._basis_label = label;
@@ -81,6 +109,16 @@ export function createContext<T>(defaultValue: T, label?: string) {
   return context;
 }
 
-export function useContext<T>(context: React.Context<T>): T {
+export function useContext<T>(context: Context<T>): T {
   return reactUseContext(context);
 }
+
+export const __test__ = {
+  registerVariable: engine.registerVariable,
+  unregisterVariable: engine.unregisterVariable,
+  recordUpdate: engine.recordUpdate,
+  beginEffectTracking: engine.beginEffectTracking,
+  endEffectTracking: engine.endEffectTracking,
+  history: (engine as any).history,
+  currentTickBatch: (engine as any).currentTickBatch
+};

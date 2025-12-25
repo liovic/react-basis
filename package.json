@@ -19,7 +19,9 @@
   },
   "scripts": {
     "build": "tsup",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest watch"
   },
   "keywords": [
     "react",
@@ -54,9 +56,20 @@
   },
   "devDependencies": {
     "@babel/core": "^7.26.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
     "@types/node": "^22.0.0",
-    "@types/react": "^19.0.0",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitest/coverage-v8": "^4.0.16",
+    "jsdom": "^27.3.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "tsup": "^8.3.5",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.0.16"
+  },
+  "dependencies": {
+    "@testing-library/dom": "^10.4.1"
   }
 }

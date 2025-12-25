@@ -1,3 +1,5 @@
+// src/engine.ts
+
 import * as UI from './core/logger';
 import { calculateCosineSimilarity } from './core/math';
 import { 
@@ -8,8 +10,8 @@ import {
   ANALYSIS_INTERVAL 
 } from './core/constants';
 
-const history = new Map<string, number[]>();
-const currentTickBatch = new Set<string>();
+export const history = new Map<string, number[]>();
+export const currentTickBatch = new Set<string>();
 let updateLog: { label: string; ts: number }[] = [];
 let currentEffectSource: string | null = null; 
 let tick = 0;
@@ -89,3 +91,13 @@ export const recordUpdate = (label: string): boolean => {
 if (typeof window !== 'undefined') {
   (window as any).printBasisReport = printBasisHealthReport;
 }
+
+export const __testEngine__ = {
+  history,
+  currentTickBatch,
+  registerVariable,
+  recordUpdate,
+  printBasisHealthReport,
+  beginEffectTracking,
+  endEffectTracking,
+};
