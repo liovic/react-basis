@@ -1,4 +1,5 @@
 [![npm version](https://badge.fury.io/js/react-state-basis.svg)](https://www.npmjs.com/package/react-state-basis)
+[![View on GitHub](https://img.shields.io/badge/View_Documentation-GitHub-black?logo=github)](https://github.com/liovic/react-state-basis#readme)
 
 # 📐 REACT-STATE-BASIS
 ### **Behavioral State Analysis for React**
@@ -15,6 +16,14 @@ React-State-Basis watches your state like a mathematician: every `useState`, `us
 **React-State-Basis** is a real-time architectural auditing engine that treats a React application as a **dynamic system of discrete-time vectors**. Instead of static linting, which only analyzes syntax, Basis monitors the **State Space Topology** of your application to detect mathematical redundancy (collinearity) and synchronization anti-patterns in real-time.
 
 Inspired by the work of **Sheldon Axler** (*"Linear Algebra Done Right"*), Basis aims to enforce a mathematically optimal "Source of Truth" by ensuring your application state forms a **Basis**.
+
+---
+
+## 📦 Installation
+
+```bash
+npm i react-state-basis
+```
 
 ---
 

@@ -22,6 +22,10 @@ export const BooleanEntanglement = () => {
       <h4>2. Boolean Entanglement</h4>
       <button onClick={runSimulation}>Trigger API Loop</button>
       <p>Status: {isLoading ? "..." : "IDLE"}</p>
+
+      <div style={{ fontSize: '10px', color: '#666', marginTop: '5px' }}>
+        Internal State: {isSuccess ? "SUCCESS" : ""} {hasData ? " | HAS_DATA" : ""}
+      </div>
     </div>
   )
 }
