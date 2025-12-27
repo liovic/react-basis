@@ -61,8 +61,11 @@ export function useState<T>(initialValue: T, label?: string): [T, Dispatch<SetSt
   return [val, setter];
 }
 
-export function useMemo<T>(factory: () => T, deps: DependencyList | undefined, label?: string): T {
-  const effectiveLabel = label || 'anonymous_projection';
+export function useMemo<T>(factory: () => T, depsOrLabel?: DependencyList | string, label?: string): T {
+  const isLabelAsSecondArg = typeof depsOrLabel === 'string';
+  
+  const actualDeps = isLabelAsSecondArg ? undefined : (depsOrLabel as DependencyList);
+  const effectiveLabel = isLabelAsSecondArg ? (depsOrLabel as string) : (label || 'anonymous_projection');
   
   reactUseEffect(() => {
     if ((window as any)._basis_debug !== false) {
@@ -70,18 +73,21 @@ export function useMemo<T>(factory: () => T, deps: DependencyList | undefined, l
     }
   }, [effectiveLabel]);
 
-  return reactUseMemo(factory, deps || []);
+  return reactUseMemo(factory, actualDeps || []);
 }
 
-export function useEffect(effect: EffectCallback, deps?: DependencyList, label?: string) {
-  const effectiveLabel = label || 'anonymous_effect';
+export function useEffect(effect: EffectCallback, depsOrLabel?: DependencyList | string, label?: string) {
+  const isLabelAsSecondArg = typeof depsOrLabel === 'string';
+  
+  const actualDeps = isLabelAsSecondArg ? undefined : (depsOrLabel as DependencyList);
+  const effectiveLabel = isLabelAsSecondArg ? (depsOrLabel as string) : (label || 'anonymous_effect');
 
   reactUseEffect(() => {
     beginEffectTracking(effectiveLabel);
     const cleanup = effect();
     endEffectTracking();
     return cleanup;
-  }, deps);
+  }, actualDeps);
 }
 
 export function useReducer<S, A, I>(
