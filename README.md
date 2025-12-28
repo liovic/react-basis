@@ -447,30 +447,29 @@ Think of it as an architectural smoke detector-not a fire marshal.
 
 ---
 
-## 🗺️ Roadmap & Future Improvements (v0.2.0+)
+## 🗺️ Roadmap: The Path to Architectural Rigor
 
-**React-State-Basis** is a solo-developed diagnostic infrastructure. I am currently working on the following features to enhance the "Zero-Friction" developer experience:
+React-State-Basis is evolving from a runtime auditor to a complete development infrastructure. Here is the planned trajectory:
 
-### 1. ⚡ Hybrid Production Strategy
-I am moving towards a "Set and Forget" model to eliminate manual import management:
-* **Production Pass-through:** A production-mode toggle that bypasses the auditing logic and maps directly to React core hooks with zero overhead.
-* **Tree-Shaking Optimization:** Ensuring the Linear Algebra engine and Circuit Breaker logic are physically excluded from production bundles via conditional exports.
+### **v0.2.0 - Full Hook Parity (Upcoming)**
+The goal is to make Basis a complete drop-in replacement for the standard React API.
+*   **Complete API Coverage:** Adding support for `useRef`, `useCallback`, `useLayoutEffect`, `useTransition`, `useDeferredValue`
+*   **Babel Enhancements:** Automated labeling for the entire hook suite to ensure zero-manual-config diagnostics.
+*   **Signature Robustness:** Smart disambiguation between dependency arrays and manual labels.
 
-### 2. 🛠️ CLI "Clean-Exit" Utility
-For engineers who prefer a purist approach or want to remove the dependency after a refactor phase:
-* **Automated Codemod:** I plan to release `npx rsb-clean`, a utility to automatically revert all `react-state-basis` imports back to standard `react` imports across your entire project.
-* **One-Command Cleanup:** Ensures a zero-overhead production build without manual searching and replacing.
+### **v0.3.0 - Modernity & Production Strategy**
+Aligning with the future of React and ensuring zero production cost.
+*   **React 19 Support:** Integration of `use()`, `useOptimistic()`, and `useActionState()` into the vector space model.
+*   **Zero-Overhead Production:** Implementing **Conditional Exports**. When in production mode, Basis will pass through raw React hooks with zero logic, ensuring no performance penalty.
 
-### 3. 📉 Dependency Topology Visualizer
-I want to transform the "Audit Report" from console logs into a visual map:
-* **Redundancy Clusters:** A 2D canvas showing "entangled" states as physical clusters.
-* **Vector Distance Mapping:** A visual representation of how close your state variables are to being collinear.
+### **v0.4.0 - Developer Ecosystem & Visuals**
+Tools for better ergonomics and high-level insights.
+*   **CLI Utilities (`rsb-init`, `rsb-clean`):** Automated codemods to instantly inject or remove Basis from large codebases. No more manual search-and-replace.
+*   **State-Space Visualizer:** A 2D topology map showing "Redundancy Clusters." Visualize your state vectors as physical nodes to identify where the architecture is collapsing.
 
-
-
-### 4. 🧪 CI/CD Integration
-* **Test-Health Reporting:** Integration with Vitest/Jest to automatically fail builds if a "Dimension Collapse" or "Infinite Loop" is detected during automated test runs.
-* **Architectural KPI tracking:** Monitoring your **System Efficiency Score** over time as the codebase grows.
+### **v1.0.0 - Formal Verification**
+*   **Architectural Gatekeeping:** CI/CD integration to fail builds on infinite loops or critical dimension collapses.
+*   **KPI Tracking:** Long-term monitoring of your application’s **System Efficiency Score**.
 
 ---
 
