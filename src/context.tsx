@@ -1,8 +1,9 @@
 // src/context.tsx
-
 import React, { createContext, useContext, ReactNode } from 'react';
 
 const BasisContext = createContext({ debug: false });
+
+const isWeb = typeof window !== 'undefined' && typeof window.document !== 'undefined';
 
 interface BasisProviderProps {
   children: ReactNode;
@@ -10,14 +11,14 @@ interface BasisProviderProps {
 }
 
 export const BasisProvider: React.FC<BasisProviderProps> = ({ children, debug = true }) => {
-  if (typeof window !== 'undefined') {
+  if (isWeb) {
     (window as any)._basis_debug = debug;
   }
 
   return (
     <BasisContext.Provider value={{ debug }}>
       {children}
-      {debug && (
+      {(debug && isWeb) && (
         <div style={{ 
           position: 'fixed', bottom: 10, right: 10, background: 'black', color: '#0f0', 
           padding: '5px 10px', fontSize: '10px', fontFamily: 'monospace', 
