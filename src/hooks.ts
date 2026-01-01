@@ -7,6 +7,7 @@ import {
   useReducer as reactUseReducer,
   useContext as reactUseContext,
   createContext as reactCreateContext,
+  useRef as reactUseRef,
   useCallback 
 } from 'react';
 
@@ -123,6 +124,10 @@ export function createContext<T>(defaultValue: T, label?: string): Context<T> {
     (context as any)._basis_label = label;
   }
   return context;
+}
+
+export function useRef<T>(initialValue: T, _label?: string) {
+  return reactUseRef(initialValue);
 }
 
 export function useContext<T>(context: Context<T>): T {

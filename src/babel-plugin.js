@@ -16,7 +16,7 @@ module.exports = function (babel) {
           calleeName = p.node.callee.property.name;
         }
 
-        const targetFunctions = ['useState', 'useMemo', 'useEffect', 'useReducer', 'createContext'];
+        const targetFunctions = ['useState', 'useMemo', 'useEffect', 'useReducer', 'createContext', 'useRef'];
         if (!calleeName || !targetFunctions.includes(calleeName)) return;
 
         const filePath = state.file.opts.filename || "UnknownFile";
@@ -38,7 +38,7 @@ module.exports = function (babel) {
 
         const args = p.node.arguments;
 
-        if (calleeName === 'useState' || calleeName === 'createContext') {
+        if (calleeName === 'useState' || calleeName === 'createContext' || calleeName === 'useRef') {
           if (args.length === 0) args.push(t.identifier('undefined'));
           if (args.length === 1) args.push(t.stringLiteral(uniqueLabel));
         } 
