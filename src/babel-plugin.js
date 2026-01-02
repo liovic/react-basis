@@ -16,7 +16,12 @@ module.exports = function (babel) {
           calleeName = p.node.callee.property.name;
         }
 
-        const targetFunctions = ['useState', 'useMemo', 'useEffect', 'useReducer', 'createContext', 'useRef', 'useLayoutEffect'];
+        const targetFunctions = [
+          'useState', 'useMemo', 'useEffect', 'useReducer', 'createContext', 
+          'useRef', 'useLayoutEffect', 'useId', 'useImperativeHandle', 
+          'useInsertionEffect', 'useDebugValue', 'useSyncExternalStore'
+        ];
+
         if (!calleeName || !targetFunctions.includes(calleeName)) return;
 
         const filePath = state.file.opts.filename || "UnknownFile";
@@ -30,20 +35,19 @@ module.exports = function (babel) {
           } else if (t.isIdentifier(id)) {
             varName = id.name;
           }
-        } else if (calleeName === 'useEffect') {
+        } else if (calleeName === 'useEffect' || calleeName === 'useLayoutEffect' || calleeName === 'useInsertionEffect') {
           varName = `effect_L${p.node.loc?.start.line || 'unknown'}`;
         }
 
         const uniqueLabel = `${fileName} -> ${varName}`;
-
         const args = p.node.arguments;
 
-        if (calleeName === 'useState' || calleeName === 'createContext' || calleeName === 'useRef') {
+        if (['useState', 'createContext', 'useRef', 'useId', 'useDebugValue'].includes(calleeName)) {
           if (args.length === 0) args.push(t.identifier('undefined'));
           if (args.length === 1) args.push(t.stringLiteral(uniqueLabel));
         } 
         
-        else if (calleeName === 'useEffect' || calleeName === 'useMemo' || calleeName === 'useLayoutEffect') {
+        else if (['useEffect', 'useMemo', 'useLayoutEffect', 'useInsertionEffect'].includes(calleeName)) {
           if (args.length === 1) args.push(t.identifier('undefined'));
           if (args.length === 2) args.push(t.stringLiteral(uniqueLabel));
         } 
@@ -52,6 +56,11 @@ module.exports = function (babel) {
           if (args.length === 2 || args.length === 3) {
             args.push(t.stringLiteral(uniqueLabel));
           }
+        }
+
+        else if (['useSyncExternalStore', 'useImperativeHandle'].includes(calleeName)) {
+          if (args.length === 2) args.push(t.identifier('undefined'));
+          if (args.length === 3) args.push(t.stringLiteral(uniqueLabel));
         }
       }
     }
