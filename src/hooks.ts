@@ -9,7 +9,7 @@ import {
   createContext as reactCreateContext,
   useRef as reactUseRef,
   useLayoutEffect as reactUseLayoutEffect,
-  useCallback,
+  useCallback as reactUseCallback,
   useId as reactUseId,
   useDebugValue as reactUseDebugValue,
   useImperativeHandle as reactUseImperativeHandle,
@@ -130,6 +130,24 @@ export function createContext<T>(defaultValue: T, label?: string): Context<T> {
     (context as any)._basis_label = label;
   }
   return context;
+}
+
+export function useCallback<T extends (...args: any[]) => any>(
+  callback: T,
+  depsOrLabel?: DependencyList | string,
+  label?: string
+): T {
+  const isLabelAsSecondArg = typeof depsOrLabel === 'string';
+  const actualDeps = isLabelAsSecondArg ? undefined : (depsOrLabel as DependencyList);
+  const effectiveLabel = isLabelAsSecondArg ? (depsOrLabel as string) : (label || 'anonymous_callback');
+
+  reactUseEffect(() => {
+    if ((window as any)._basis_debug !== false) {
+      console.log(`%c [Basis] Stable Callback: "${effectiveLabel}" `, "color: #2ecc71; font-weight: bold;");
+    }
+  }, [effectiveLabel]);
+
+  return reactUseCallback(callback, actualDeps || []);
 }
 
 export function useRef<T>(initialValue: T, _label?: string) {
