@@ -19,7 +19,8 @@ module.exports = function (babel) {
         const targetFunctions = [
           'useState', 'useMemo', 'useEffect', 'useReducer', 'createContext',
           'useRef', 'useLayoutEffect', 'useCallback', 'useId',
-          'useImperativeHandle', 'useInsertionEffect', 'useDebugValue', 'useSyncExternalStore'
+          'useImperativeHandle', 'useInsertionEffect', 'useDebugValue', 'useSyncExternalStore',
+          'useTransition', 'useDeferredValue'
         ];
 
         if (!calleeName || !targetFunctions.includes(calleeName)) return;
@@ -42,7 +43,7 @@ module.exports = function (babel) {
         const uniqueLabel = `${fileName} -> ${varName}`;
         const args = p.node.arguments;
 
-        if (['useState', 'createContext', 'useRef', 'useId', 'useDebugValue'].includes(calleeName)) {
+        if (['useState', 'createContext', 'useRef', 'useId', 'useDebugValue', 'useDeferredValue', 'useTransition'].includes(calleeName)) {
           if (args.length === 0) args.push(t.identifier('undefined'));
           if (args.length === 1) args.push(t.stringLiteral(uniqueLabel));
         }
