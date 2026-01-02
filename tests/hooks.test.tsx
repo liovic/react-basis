@@ -10,7 +10,12 @@ import {
   useReducer,
   createContext,
   useContext,
-  __test__
+  __test__,
+  useRef,
+  useCallback,
+  useLayoutEffect,
+  useTransition,
+  useDeferredValue
 } from '../src/hooks';
 import { BasisProvider } from '../src/context';
 
@@ -95,5 +100,55 @@ describe('Hooks Deep Coverage', () => {
     const Ctx = createContext("default");
     const { result } = renderHook(() => useContext(Ctx), { wrapper });
     expect(result.current).toBe("default");
+  });
+
+  it('useRef: returns a stable ref object', () => {
+    const { result } = renderHook(() => useRef(10));
+    expect(result.current.current).toBe(10);
+  });
+
+  it('useCallback: logs and maintains stability', () => {
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const { result } = renderHook(() => useCallback(() => "hello", [], "test_cb"), { wrapper });
+    
+    expect(result.current()).toBe("hello");
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining('Stable Callback'), expect.any(String));
+    spy.mockRestore();
+  });
+
+  it('useLayoutEffect: tracks causality correctly', () => {
+    const spy = vi.spyOn(console, 'groupCollapsed').mockImplementation(() => {});
+    renderHook(() => {
+      const [, s] = useState(0, 'state_var');
+      useLayoutEffect(() => { s(1); }, [], 'layout_effect');
+    }, { wrapper });
+
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining('BASIS | CAUSALITY'), expect.any(String));
+    spy.mockRestore();
+  });
+
+  it('useTransition: logs when transition starts', () => {
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const { result } = renderHook(() => useTransition("trans_label"), { wrapper });
+    
+    act(() => {
+      result.current[1](() => {});
+    });
+
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining('Transition Started'), expect.any(String));
+    spy.mockRestore();
+  });
+
+  it('useDeferredValue: logs when value is deferred', () => {
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const { rerender } = renderHook(({ val }) => useDeferredValue(val, "deferred_label"), {
+      wrapper,
+      initialProps: { val: 1 }
+    });
+
+    rerender({ val: 2 });
+
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining('Value Deferred'), expect.any(String));
+    spy.mockRestore();
   });
 });

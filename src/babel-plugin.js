@@ -48,7 +48,7 @@ module.exports = function (babel) {
           if (args.length === 1) args.push(t.stringLiteral(uniqueLabel));
         }
 
-        else if (['useEffect', 'useMemo', 'useLayoutEffect', 'useInsertionEffect'].includes(calleeName)) {
+        else if (['useEffect', 'useMemo', 'useLayoutEffect', 'useInsertionEffect', 'useCallback'].includes(calleeName)) {
           if (args.length === 1) args.push(t.identifier('undefined'));
           if (args.length === 2) args.push(t.stringLiteral(uniqueLabel));
         }
