@@ -16,7 +16,7 @@ module.exports = function (babel) {
           calleeName = p.node.callee.property.name;
         }
 
-        const targetFunctions = ['useState', 'useMemo', 'useEffect', 'useReducer', 'createContext', 'useRef'];
+        const targetFunctions = ['useState', 'useMemo', 'useEffect', 'useReducer', 'createContext', 'useRef', 'useLayoutEffect'];
         if (!calleeName || !targetFunctions.includes(calleeName)) return;
 
         const filePath = state.file.opts.filename || "UnknownFile";
@@ -43,7 +43,7 @@ module.exports = function (babel) {
           if (args.length === 1) args.push(t.stringLiteral(uniqueLabel));
         } 
         
-        else if (calleeName === 'useEffect' || calleeName === 'useMemo') {
+        else if (calleeName === 'useEffect' || calleeName === 'useMemo' || calleeName === 'useLayoutEffect') {
           if (args.length === 1) args.push(t.identifier('undefined'));
           if (args.length === 2) args.push(t.stringLiteral(uniqueLabel));
         } 

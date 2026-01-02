@@ -149,7 +149,7 @@ Replace your standard React hook imports with `react-state-basis`. This allows t
 // import { useState, useEffect } from 'react';
 
 // ✅ To this:
-import { useState, useEffect, useMemo, useContext, useRef } from 'react-state-basis';
+import { useState, useEffect, useMemo, useContext, useRef, useLayoutEffect } from 'react-state-basis';
 
 function MyComponent() {
   const [data, setData] = useState([]); // Automatically vectorized and tracked

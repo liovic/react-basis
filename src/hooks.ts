@@ -8,6 +8,7 @@ import {
   useContext as reactUseContext,
   createContext as reactCreateContext,
   useRef as reactUseRef,
+  useLayoutEffect as reactUseLayoutEffect,
   useCallback 
 } from 'react';
 
@@ -128,6 +129,20 @@ export function createContext<T>(defaultValue: T, label?: string): Context<T> {
 
 export function useRef<T>(initialValue: T, _label?: string) {
   return reactUseRef(initialValue);
+}
+
+export function useLayoutEffect(effect: EffectCallback, depsOrLabel?: DependencyList | string, label?: string) {
+  const isLabelAsSecondArg = typeof depsOrLabel === 'string';
+  
+  const actualDeps = isLabelAsSecondArg ? undefined : (depsOrLabel as DependencyList);
+  const effectiveLabel = isLabelAsSecondArg ? (depsOrLabel as string) : (label || 'anonymous_layout_effect');
+
+  reactUseLayoutEffect(() => {
+    beginEffectTracking(effectiveLabel);
+    const cleanup = effect();
+    endEffectTracking();
+    return cleanup;
+  }, actualDeps);
 }
 
 export function useContext<T>(context: Context<T>): T {
