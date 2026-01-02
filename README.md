@@ -158,7 +158,9 @@ import {
   useRef, 
   useLayoutEffect, 
   useId, 
-  useSyncExternalStore 
+  useSyncExternalStore,
+  useDeferredValue, 
+  useTransition
 } from 'react-state-basis';
 
 function MyComponent() {

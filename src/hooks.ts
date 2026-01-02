@@ -14,7 +14,9 @@ import {
   useDebugValue as reactUseDebugValue,
   useImperativeHandle as reactUseImperativeHandle,
   useInsertionEffect as reactUseInsertionEffect,
-  useSyncExternalStore as reactUseSyncExternalStore
+  useSyncExternalStore as reactUseSyncExternalStore,
+  useTransition as reactUseTransition, 
+  useDeferredValue as reactUseDeferredValue 
 } from 'react';
 
 import type {
@@ -195,6 +197,40 @@ export function useInsertionEffect(
   _label?: string
 ): void {
   return reactUseInsertionEffect(effect, deps);
+}
+
+export function useTransition(_label?: string): [boolean, (callback: () => void) => void] {
+  const [isPending, startTransition] = reactUseTransition();
+  const effectiveLabel = _label || 'anonymous_transition';
+
+  const basisStartTransition = (callback: () => void) => {
+    if ((window as any)._basis_debug !== false) {
+      console.log(`%c [Basis] Transition Started: "${effectiveLabel}" `, "color: #e67e22; font-weight: bold;");
+    }
+    
+    startTransition(() => {
+      callback();
+    });
+  };
+
+  return [isPending, basisStartTransition];
+}
+
+export function useDeferredValue<T>(value: T, initialValueOrLabel?: T | string, label?: string): T {
+  const isLabelAsSecondArg = typeof initialValueOrLabel === 'string' && label === undefined;
+  
+  const actualInitialValue = isLabelAsSecondArg ? undefined : initialValueOrLabel as T;
+  const effectiveLabel = isLabelAsSecondArg ? (initialValueOrLabel as string) : (label || 'anonymous_deferred');
+
+  const deferredValue = reactUseDeferredValue(value, actualInitialValue);
+
+  reactUseEffect(() => {
+    if ((window as any)._basis_debug !== false && value !== deferredValue) {
+      console.log(`%c [Basis] Value Deferred: "${effectiveLabel}" `, "color: #e67e22; font-weight: bold;");
+    }
+  }, [value, deferredValue, effectiveLabel]);
+
+  return deferredValue;
 }
 
 export function useSyncExternalStore<Snapshot>(
