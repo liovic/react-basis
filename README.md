@@ -463,7 +463,7 @@ Think of it as an architectural smoke detector-not a fire marshal.
 
 React-State-Basis is evolving from a runtime auditor to a complete development infrastructure. Here is the planned trajectory:
 
-### **v0.2.0 - Full Hook Parity (Upcoming)**
+### **v0.2.0 - Full Hook Parity (DONE)**
 The goal is to make Basis a complete drop-in replacement for the standard React API.
 *   **Complete API Coverage:** Adding support for `useRef`, `useCallback`, `useLayoutEffect`, `useTransition`, `useDeferredValue`
 *   **Babel Enhancements:** Automated labeling for the entire hook suite to ensure zero-manual-config diagnostics.
