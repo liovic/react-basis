@@ -17,9 +17,9 @@ module.exports = function (babel) {
         }
 
         const targetFunctions = [
-          'useState', 'useMemo', 'useEffect', 'useReducer', 'createContext', 
-          'useRef', 'useLayoutEffect', 'useId', 'useImperativeHandle', 
-          'useInsertionEffect', 'useDebugValue', 'useSyncExternalStore'
+          'useState', 'useMemo', 'useEffect', 'useReducer', 'createContext',
+          'useRef', 'useLayoutEffect', 'useCallback', 'useId',
+          'useImperativeHandle', 'useInsertionEffect', 'useDebugValue', 'useSyncExternalStore'
         ];
 
         if (!calleeName || !targetFunctions.includes(calleeName)) return;
@@ -45,13 +45,13 @@ module.exports = function (babel) {
         if (['useState', 'createContext', 'useRef', 'useId', 'useDebugValue'].includes(calleeName)) {
           if (args.length === 0) args.push(t.identifier('undefined'));
           if (args.length === 1) args.push(t.stringLiteral(uniqueLabel));
-        } 
-        
+        }
+
         else if (['useEffect', 'useMemo', 'useLayoutEffect', 'useInsertionEffect'].includes(calleeName)) {
           if (args.length === 1) args.push(t.identifier('undefined'));
           if (args.length === 2) args.push(t.stringLiteral(uniqueLabel));
-        } 
-        
+        }
+
         else if (calleeName === 'useReducer') {
           if (args.length === 2 || args.length === 3) {
             args.push(t.stringLiteral(uniqueLabel));
