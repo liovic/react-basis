@@ -118,7 +118,7 @@ function MyComponent() {
 ```
 ---
 
-## 🪄 Automated Diagnostics (Babel)
+## Automated Diagnostics (Babel)
 While Basis works out of the box, hooks will be labeled as `anonymous_state` by default. To get the rich diagnostics seen in the demos (with automatic **filenames** and **variable names**), we highly recommend using our Babel plugin.
 
 ### Vite Integration
@@ -150,7 +150,7 @@ const [count, setCount] = useState(0, "MyComponent -> count");
 
 ---
 
-## 📊 High-Level Insights
+## High-Level Insights
 
 ### System Health Report
 For a bird's-eye view of your entire application's state-space, call the global reporter in your browser console:
@@ -167,7 +167,7 @@ Basis automatically detects the environment. In mobile environments, it switches
 
 ---
 
-## ⚖️ Basis vs Existing Tools
+## Basis vs Existing Tools
 
 | Feature | React DevTools | Why Did You Render | Basis 📐 |
 | :--- | :---: | :---: | :---: |
