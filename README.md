@@ -207,6 +207,23 @@ Basis performs a global audit of your state space to calculate its **Mathematica
 <img src="./example/screenshots/systemHealthReport.gif" width="700" alt="System Health Report Demo" />
 
 ---
+---
+
+## 🔍 Case Study: Auditing a Production-Ready Admin Dashboard
+
+I ran Basis on a complex `shadcn/ui` admin template to see how it handles professional-grade code. Here is what the mathematical engine discovered:
+
+<p align="center">
+  <img src="./assets/real-world-audit.png" width="800" alt="Basis Real World Audit" />
+</p>
+
+### Key Insights from the Audit:
+*   **Double Render Detection:** Basis flagged a "Double Render Cycle" in the `use-mobile.tsx` hook. It detected that state was being manually synchronized within an effect, causing unnecessary UI churn.
+*   **Stability Verification:** The engine verified that the `Sidebar` callbacks were correctly memoized, providing a "Stable Callback" confirmation.
+*   **Valid Projections:** Complex table states (pagination, filters) were confirmed as valid mathematical projections, ensuring no redundant `useState` was used.
+
+Math reveals exactly what standard code reviews often miss: the **temporal topology** of your application.
+---
 
 ## Roadmap
 

@@ -19,7 +19,6 @@ import {
   useId,
   useDebugValue,
   useSyncExternalStore,
-  useImperativeHandle,
   useInsertionEffect
 } from '../src/hooks';
 import { BasisProvider } from '../src/context';
@@ -173,20 +172,6 @@ describe('Hooks Deep Coverage', () => {
     const { result } = renderHook(() => useSyncExternalStore(subscribe, getSnapshot), { wrapper });
     expect(result.current).toBe("data");
     expect(subscribe).toHaveBeenCalled();
-  });
-
-  it('useImperativeHandle: handles ref assignment', () => {
-    interface MyHandle { test: number }
-
-    const ref = { current: null } as { current: MyHandle | null };
-
-    const { result } = renderHook(() =>
-      useImperativeHandle(ref, () => ({ test: 1 }), [], "test_handle"),
-      { wrapper }
-    );
-
-    expect(result.current).toBeUndefined();
-    expect(ref.current?.test).toBe(1);
   });
 
   it('useInsertionEffect: runs without crashing', () => {

@@ -20,7 +20,7 @@ module.exports = function (babel) {
           'useState', 'useMemo', 'useEffect', 'useReducer', 'createContext',
           'useRef', 'useLayoutEffect', 'useCallback', 'useId',
           'useImperativeHandle', 'useInsertionEffect', 'useDebugValue', 'useSyncExternalStore',
-          'useTransition', 'useDeferredValue'
+          'useTransition', 'useDeferredValue', 'use', 'useOptimistic', 'useActionState'
         ];
 
         if (!calleeName || !targetFunctions.includes(calleeName)) return;

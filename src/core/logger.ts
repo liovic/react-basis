@@ -48,7 +48,7 @@ const logBasis = (message: string, ...styles: string[]) => {
 
 export const displayBootLog = (windowSize: number) => {
   logBasis(
-    `%cBasis%cAuditor v0.1.4%c Monitoring State Space | Window: ${windowSize} ticks`,
+    `%cBasis%cAuditor%c Monitoring State Space | Window: ${windowSize} ticks`,
     STYLES.basis,
     STYLES.version,
     "color: #636e72; font-style: italic; margin-left: 8px;"

@@ -52,7 +52,7 @@ export default function App() {
             background: '#050505', minHeight: '100vh', color: '#00ff41',
             padding: '40px', fontFamily: '"Courier New", monospace'
           }}>
-            <h1 style={{ borderBottom: '2px solid #00ff41' }}>BASIS v0.1.0</h1>
+            <h1 style={{ borderBottom: '2px solid #00ff41' }}>BASIS v0.2.3</h1>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
               <WeatherLab />

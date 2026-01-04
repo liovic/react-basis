@@ -21,6 +21,14 @@
       },
       "default": "./dist/production.mjs"
     },
+    "./jsx-runtime": {
+      "import": "./dist/jsx-runtime.mjs",
+      "require": "./dist/jsx-runtime.js"
+    },
+    "./jsx-dev-runtime": {
+      "import": "./dist/jsx-dev-runtime.mjs",
+      "require": "./dist/jsx-dev-runtime.js"
+    },
     "./plugin": "./dist/plugin.js"
   },
   "scripts": {
