@@ -4,6 +4,7 @@ import * as UI from './logger';
 import { calculateSimilarityCircular } from './math';
 import { SIMILARITY_THRESHOLD } from './constants';
 import { SignalRole, Entry, ViolationDetail } from './types';
+import { isSameField } from './label';
 
 interface Similarities {
   sync: number;
@@ -59,6 +60,9 @@ const shouldSkipComparison = (
   dirtyLabels: Set<string>
 ): boolean => {
   if (entryA.label === entryB.label) return true;
+
+  if (isSameField(entryA.label, entryB.label)) return true;
+
   if (dirtyLabels.has(entryB.label) && entryA.label > entryB.label) return true;
   return false;
 };

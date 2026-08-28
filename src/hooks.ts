@@ -25,11 +25,25 @@ import {
   history as engineHistory
 } from './engine';
 import { SignalRole } from './core/types';
+import { INSTANCE_SEP } from './core/constants';
 
 // --- Internal Type Helpers ---
 
 let anonCount = 0;
 const getFallbackLabel = (type: string) => `anon_${type}_${anonCount++}`;
+
+const reactUseId = (React as unknown as { useId?: () => string }).useId;
+let legacyInstanceCounter = 0;
+
+const useInstanceId = (): string => {
+  const [legacyId] = reactUseState(() =>
+    typeof reactUseId === 'function' ? '' : `legacy_${legacyInstanceCounter++}`
+  );
+  return typeof reactUseId === 'function' ? reactUseId() : legacyId;
+};
+
+const withInstance = (label: string, instanceId: string) =>
+  `${label}${INSTANCE_SEP}${instanceId}`;
 
 /**
  * Standard React Reducer type inference helpers.
@@ -64,17 +78,19 @@ export function useState<S>(
 ): [S, React.Dispatch<React.SetStateAction<S>>] {
   const [val, setVal] = reactUseState(initialState);
   const effectiveLabel = reactUseRef(label || getFallbackLabel('state')).current;
+  const instanceId = useInstanceId();
+  const storageKey = withInstance(effectiveLabel, instanceId);
 
   reactUseEffect(() => {
-    registerVariable(effectiveLabel, { role: SignalRole.LOCAL });
-    return () => { unregisterVariable(effectiveLabel); };
-  }, [effectiveLabel]);
+    registerVariable(storageKey, { role: SignalRole.LOCAL });
+    return () => { unregisterVariable(storageKey); };
+  }, [storageKey]);
 
   const setter = reactUseCallback((value: React.SetStateAction<S>) => {
-    if (recordUpdate(effectiveLabel)) {
+    if (recordUpdate(storageKey)) {
       setVal(value);
     }
-  }, [effectiveLabel]);
+  }, [storageKey]);
 
   return [val, setter];
 }
@@ -115,21 +131,23 @@ export function useReducer<R extends React.Reducer<any, any>, I>(
   // v0.5.x Label Extraction: prioritize 4th arg, fallback to 3rd if string (Babel behavior)
   const providedLabel = label || (typeof init === 'string' ? init : undefined);
   const effectiveLabel = reactUseRef(providedLabel || getFallbackLabel('reducer')).current;
+  const instanceId = useInstanceId();
+  const storageKey = withInstance(effectiveLabel, instanceId);
 
   const [state, dispatch] = isLazy
     ? reactUseReducer(reducer, initialArg as I, init as (arg: I) => GetReducerState<R>)
     : reactUseReducer(reducer, initialArg as GetReducerState<R>);
 
   reactUseEffect(() => {
-    registerVariable(effectiveLabel, { role: SignalRole.LOCAL });
-    return () => { unregisterVariable(effectiveLabel); };
-  }, [effectiveLabel]);
+    registerVariable(storageKey, { role: SignalRole.LOCAL });
+    return () => { unregisterVariable(storageKey); };
+  }, [storageKey]);
 
   const basisDispatch = reactUseCallback((action: GetReducerAction<R>) => {
-    if (recordUpdate(effectiveLabel)) {
+    if (recordUpdate(storageKey)) {
       dispatch(action);
     }
-  }, [effectiveLabel, dispatch]);
+  }, [storageKey, dispatch]);
 
   return [state, basisDispatch];
 }
@@ -168,19 +186,23 @@ export function useContext<T>(context: React.Context<T>): T {
 
 export function useMemo<T>(factory: () => T, deps: React.DependencyList | undefined, label?: string): T {
   const effectiveLabel = reactUseRef(label || getFallbackLabel('proj')).current;
+  const instanceId = useInstanceId();
+  const storageKey = withInstance(effectiveLabel, instanceId);
   reactUseEffect(() => {
-    registerVariable(effectiveLabel, { role: SignalRole.PROJECTION });
-    return () => { unregisterVariable(effectiveLabel); };
-  }, [effectiveLabel]);
+    registerVariable(storageKey, { role: SignalRole.PROJECTION });
+    return () => { unregisterVariable(storageKey); };
+  }, [storageKey]);
   return reactUseMemo(factory, deps || []);
 }
 
 export function useCallback<T extends (...args: unknown[]) => unknown>(callback: T, deps: React.DependencyList, label?: string): T {
   const effectiveLabel = reactUseRef(label || getFallbackLabel('cb')).current;
+  const instanceId = useInstanceId();
+  const storageKey = withInstance(effectiveLabel, instanceId);
   reactUseEffect(() => {
-    registerVariable(effectiveLabel, { role: SignalRole.PROJECTION });
-    return () => { unregisterVariable(effectiveLabel); };
-  }, [effectiveLabel]);
+    registerVariable(storageKey, { role: SignalRole.PROJECTION });
+    return () => { unregisterVariable(storageKey); };
+  }, [storageKey]);
   return reactUseCallback(callback, deps);
 }
 
@@ -188,8 +210,10 @@ export function useCallback<T extends (...args: unknown[]) => unknown>(callback:
 
 export function useEffect(effect: React.EffectCallback, deps?: React.DependencyList, label?: string): void {
   const effectiveLabel = label || 'anonymous_effect';
+  const instanceId = useInstanceId();
+  const storageKey = withInstance(effectiveLabel, instanceId);
   reactUseEffect(() => {
-    beginEffectTracking(effectiveLabel);
+    beginEffectTracking(storageKey);
     const destructor = effect();
     endEffectTracking();
     return typeof destructor === 'function' ? destructor : undefined;
@@ -198,8 +222,10 @@ export function useEffect(effect: React.EffectCallback, deps?: React.DependencyL
 
 export function useLayoutEffect(effect: React.EffectCallback, deps?: React.DependencyList, label?: string): void {
   const effectiveLabel = label || 'anonymous_layout_effect';
+  const instanceId = useInstanceId();
+  const storageKey = withInstance(effectiveLabel, instanceId);
   reactUseLayoutEffect(() => {
-    beginEffectTracking(effectiveLabel);
+    beginEffectTracking(storageKey);
     const destructor = effect();
     endEffectTracking();
     return typeof destructor === 'function' ? destructor : undefined;
@@ -214,18 +240,20 @@ export function useOptimistic<S, P>(
   label?: string
 ): [S, (payload: P) => void] {
   const effectiveLabel = reactUseRef(label || getFallbackLabel('optimistic')).current;
+  const instanceId = useInstanceId();
+  const storageKey = withInstance(effectiveLabel, instanceId);
   reactUseEffect(() => {
-    registerVariable(effectiveLabel, { role: SignalRole.LOCAL });
-    return () => { unregisterVariable(effectiveLabel); };
-  }, [effectiveLabel]);
+    registerVariable(storageKey, { role: SignalRole.LOCAL });
+    return () => { unregisterVariable(storageKey); };
+  }, [storageKey]);
 
   const [state, reactAddOptimistic] = React19.useOptimistic(passthrough, reducer);
 
   const addOptimistic = reactUseCallback((payload: P) => {
-    if (recordUpdate(effectiveLabel)) {
+    if (recordUpdate(storageKey)) {
       reactAddOptimistic(payload);
     }
-  }, [effectiveLabel, reactAddOptimistic]);
+  }, [storageKey, reactAddOptimistic]);
 
   return [state, addOptimistic];
 }
@@ -240,19 +268,21 @@ export function useActionState<State, Payload>(
   const isLabelArg = typeof permalink === 'string' && label === undefined;
   const effectiveLabel = reactUseRef(isLabelArg ? (permalink as string) : (label || getFallbackLabel('action_state'))).current;
   const actualPermalink = isLabelArg ? undefined : permalink;
+  const instanceId = useInstanceId();
+  const storageKey = withInstance(effectiveLabel, instanceId);
 
   const [state, reactDispatch, isPending] = React19.useActionState(action, initialState, actualPermalink);
 
   reactUseEffect(() => {
-    registerVariable(effectiveLabel, { role: SignalRole.LOCAL });
-    return () => { unregisterVariable(effectiveLabel); };
-  }, [effectiveLabel]);
+    registerVariable(storageKey, { role: SignalRole.LOCAL });
+    return () => { unregisterVariable(storageKey); };
+  }, [storageKey]);
 
   const basisDispatch = reactUseCallback((payload: Payload) => {
-    if (recordUpdate(effectiveLabel)) {
+    if (recordUpdate(storageKey)) {
       reactDispatch(payload);
     }
-  }, [effectiveLabel, reactDispatch]);
+  }, [storageKey, reactDispatch]);
 
   return [state, basisDispatch, isPending];
 }

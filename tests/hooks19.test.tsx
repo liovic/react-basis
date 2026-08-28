@@ -6,6 +6,9 @@ import { renderHook, act } from '@testing-library/react';
 import { useOptimistic, useActionState, __test__ } from '../src/hooks';
 import { BasisProvider } from '../src/context';
 
+const findKey = (prefix: string): string | undefined =>
+    Array.from(__test__.history.keys()).find(k => k.startsWith(prefix));
+
 describe('React 19 Hooks Coverage', () => {
     const wrapper = ({ children }: { children: React.ReactNode }) => <BasisProvider>{children}</BasisProvider>;
 
@@ -34,7 +37,7 @@ describe('React 19 Hooks Coverage', () => {
             vi.runAllTimers();
         });
 
-        const meta = __test__.history.get('opt_var');
+        const meta = __test__.history.get(findKey('opt_var')!);
         expect(meta).toBeDefined();
 
         let density = 0;
@@ -55,10 +58,10 @@ describe('React 19 Hooks Coverage', () => {
             vi.runAllTimers();
         });
 
-        expect(__test__.history.has('action_var')).toBe(true);
+        expect(findKey('action_var')).toBeDefined();
 
         let density = 0;
-        __test__.history.get('action_var')?.buffer.forEach(v => { density += v; });
+        __test__.history.get(findKey('action_var')!)?.buffer.forEach(v => { density += v; });
         expect(density).toBeGreaterThan(0);
     });
     it('useActionState: pulses on dispatch', async () => {
@@ -69,7 +72,7 @@ describe('React 19 Hooks Coverage', () => {
             result.current[1](5);
         });
 
-        expect(__test__.history.has('action_var')).toBe(true);
+        expect(findKey('action_var')).toBeDefined();
     });
 
     it('useOptimistic: triggers recordUpdate', async () => {
