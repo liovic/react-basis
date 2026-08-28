@@ -28,6 +28,8 @@ npm i react-state-basis
 Add the plugin to your `vite.config.ts`. The Babel plugin auto-labels your hooks—you continue importing from `react` as normal.
 
 ```ts
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 import { basis } from 'react-state-basis/vite';
 
 export default defineConfig({
@@ -87,7 +89,7 @@ Fix: Derive b during the render phase (remove effect) or wrap in useMemo.
 
 ---
 
-## Visual Proof
+## HUD
 
 The optional HUD shows your **State Basis Matrix** in real-time. Purple pulses ($\Omega$) are Context anchors; Red pulses (!) are redundant shadows.
 
@@ -101,12 +103,12 @@ The optional HUD shows your **State Basis Matrix** in real-time. Purple pulses (
 
 ## What Basis Detects
 
-Basis uses **Graph Theory**, **Signal Processing**, and **Linear Algebra** to identify architectural violations that static linters miss:
+Basis draws on ideas from graph theory, signal processing, and linear algebra to flag architectural issues static linters miss:
 
 - **⚡ Double Renders (Sync Leaks)** - Detects when a `useEffect` triggers a state update immediately after a render, forcing the browser to paint twice.
 - **⚡ Prime Movers (Root Causes)** - Ignores downstream symptoms and points you to the exact hook or event that started the chain reaction.
 - **⚡ Fragmented Updates** - Detects when a single click forces updates in multiple different files/contexts simultaneously (Tearing risk).
-- **Ω Context Mirroring** - Detects when you redundanty copy Global Context data into Local State (creating two sources of truth).
+- **Ω Context Mirroring** - Detects when you redundantly copy Global Context data into Local State (creating two sources of truth).
 - **♊ Duplicate State** - Identifies variables that always update at the exact same time and should be merged (e.g. `isLoading` + `isSuccess`).
 - **🛑 Infinite Loops** - A safety circuit-breaker that kills the auditor before a recursive update freezes your browser.
 
@@ -119,8 +121,8 @@ Basis uses **Graph Theory**, **Signal Processing**, and **Linear Algebra** to id
 ### Architectural Health Report
 Check your entire app's state architecture by running `window.printBasisReport()` in the console.
 
-*   **Refactor Priorities:** Uses **Spectral Influence** (Eigenvector Centrality) to rank bugs by their systemic impact. It tells you *what* to fix first.
-*   **Efficiency Score:** A calculated percentage of how "clean" your architecture is (Sources of Truth - Causal Leaks).
+*   **Refactor Priorities:** Ranks issues with eigenvector centrality on the update graph so you can see which hook or event fans out the most.
+*   **Efficiency Score:** A rough ratio of independent update sources vs effect-driven follow-up updates. Diagnostic, not a grade.
 *   **Sync Issues:** Groups entangled variables into clusters (e.g., Boolean Explosions).
 
 ### Hardware Telemetry
@@ -132,8 +134,8 @@ Verify engine efficiency and heap stability in real-time via `window.getBasisMet
 
 Basis is verified against industry-standard codebases to ensure high-fidelity detection:
 
-*   **Excalidraw (114k⭐)** - Caught a theme-sync leak forcing a double-render on every toggle. [**PR #10637**](https://github.com/excalidraw/excalidraw/pull/10637)
-*   **shadcn-admin (10k⭐)** - Detected redundant state pattern in viewport detection hooks. [**PR #274**](https://github.com/satnaing/shadcn-admin/pull/274) (MERGED)
+*   **Excalidraw (114k⭐)** - Proposed a theme-sync fix [**PR #10637**](https://github.com/excalidraw/excalidraw/pull/10637) (not merged)
+*   **shadcn-admin (10k⭐)** - Detected redundant state pattern in viewport detection hooks. [**PR #274**](https://github.com/satnaing/shadcn-admin/pull/274) (merged)
 
 ---
 
@@ -165,7 +167,7 @@ This enables detection of **Store Mirroring**, **Store Sync Leaks**, and
 
 ### More integrations coming
 
-Planned: XState, React Qery, Redux Toolkit. Community PRs welcome.
+Planned: XState, React Query, Redux Toolkit. Community PRs welcome.
 
 ---
 
@@ -181,7 +183,7 @@ Planned: XState, React Qery, Redux Toolkit. Community PRs welcome.
 
 ## Documentation & Theory
 
-Basis is built on heuristics inspired by **Signal Processing**, **Linear Algebra**, and **Graph Theory**. To understand the underlying math, visit the [**Full Wiki**](https://github.com/liovic/react-state-basis/wiki).
+Basis is built on heuristics inspired by **Signal Processing**, **Linear Algebra**, and **Graph Theory**. [**The wiki**](https://github.com/liovic/react-state-basis/wiki) explains the mental model and the engine. It is a heuristic, not a proof.
 
 ---
 
