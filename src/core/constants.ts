@@ -7,3 +7,5 @@ export const LOOP_WINDOW_MS = 1000;
 export const ANALYSIS_INTERVAL = 5;
 
 export const VOLATILITY_THRESHOLD = 25;
+
+export const INSTANCE_SEP = '##';

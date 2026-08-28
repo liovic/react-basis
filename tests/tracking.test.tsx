@@ -37,9 +37,9 @@ describe('Manual Effect Tracking (v0.6.x)', () => {
     }, { wrapper });
 
     expect(spy).toHaveBeenCalledWith(
-      'target',
+      expect.stringContaining('target'),
       expect.objectContaining({ role: 'local' }),
-      'source_effect',
+      expect.stringContaining('source_effect'),
       expect.anything() // Source meta (likely NULL_SIGNAL if not explicitly registered)
     );
   });

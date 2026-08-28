@@ -2,11 +2,7 @@
 
 import { calculateSpectralInfluence } from './graph';
 import { RingBufferMetadata, SignalRole, RankedIssue, ViolationDetail } from './types';
-
-const parseLabel = (label: string) => {
-  const parts = label.split(' -> ');
-  return { file: parts[0] || "Unknown", name: parts[1] || label };
-};
+import { parseLabel } from './label';
 
 export const identifyTopIssues = (
   graph: Map<string, Map<string, number>>,

@@ -9,6 +9,7 @@ import { StressLab } from './StressLab'
 import './App.css'
 import AnimationTests from './AnimationTests'
 import { BasisToggle } from './BasisToggle'
+import { InstanceCollisionCheck } from './InstanceCollisionCheck'
 
 function GlobalNeuralController() {
   const { login, logout } = useContext(AuthContext)
@@ -107,6 +108,7 @@ export default function App() {
               <InfiniteCrashLab />
               <StressLab />
               <AnimationTests />
+              <InstanceCollisionCheck/>
             </div>
 
             <div style={{

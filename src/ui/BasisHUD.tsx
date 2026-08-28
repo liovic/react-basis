@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { history, redundantLabels } from '../engine';
 import { HUD_DIMENSIONS as DIM, getHUDContainerStyle, HUD_THEME as THEME } from './config';
+import { parseLabel } from '../core/label';
 
 export const BasisHUD: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -129,7 +130,7 @@ function renderMatrix(ctx: CanvasRenderingContext2D, entries: [string, any][]) {
     for (let i = head; i < L; i++) addToPath(buffer[i], uiPos++);
     for (let i = 0; i < head; i++) addToPath(buffer[i], uiPos++);
 
-    const stateName = label.split(' -> ')[1] || label;
+    const stateName = parseLabel(label).name;
     const textX = (L * colW) + pad + 10;
 
     ctx.fillStyle = isContext ? THEME.header : (isRedundant ? THEME.error : THEME.text);

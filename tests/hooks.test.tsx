@@ -22,6 +22,9 @@ import {
 import { BasisProvider } from '../src/context';
 import * as UI from '../src/core/logger';
 
+const findKey = (prefix: string): string | undefined =>
+    Array.from(__test__.history.keys()).find(k => k.startsWith(prefix));
+
 describe('Hooks Deep Coverage (v0.6.x Graph Era)', () => {
     const wrapper = ({ children }: { children: React.ReactNode }) => (
         <BasisProvider debug={true}>{children}</BasisProvider>
@@ -46,10 +49,10 @@ describe('Hooks Deep Coverage (v0.6.x Graph Era)', () => {
         });
 
         expect(result.current[0]).toBe(5);
-        expect(__test__.history.has('test_state')).toBe(true);
+        expect(findKey('test_state')).toBeDefined();
 
         unmount();
-        expect(__test__.history.has('test_state')).toBe(false);
+        expect(findKey('test_state')).toBeUndefined();
     });
 
     it('useState: handles anonymous state fallback', () => {
@@ -62,7 +65,7 @@ describe('Hooks Deep Coverage (v0.6.x Graph Era)', () => {
     it('useMemo: registers as PROJECTION role', () => {
         renderHook(() => useMemo(() => 42, [], 'test_proj'), { wrapper });
 
-        const meta = __test__.history.get('test_proj');
+        const meta = __test__.history.get(findKey('test_proj')!);
         expect(meta).toBeDefined();
         expect(meta?.role).toBe('proj');
     });
@@ -83,9 +86,9 @@ describe('Hooks Deep Coverage (v0.6.x Graph Era)', () => {
         // The engine should detect that 'source_effect' is currently active 
         // when 'target' updates.
         expect(spy).toHaveBeenCalledWith(
-            'target',
+            expect.stringContaining('target'),
             expect.any(Object),
-            'source_effect',
+            expect.stringContaining('source_effect'),
             expect.any(Object)
         );
         spy.mockRestore();
@@ -100,7 +103,7 @@ describe('Hooks Deep Coverage (v0.6.x Graph Era)', () => {
                 result.current[1]({});
             });
             expect(result.current[0]).toBe(11);
-            expect(__test__.history.has('reducer_label')).toBe(true);
+            expect(findKey('reducer_label')).toBeDefined();
         });
 
         it('handles lazy initialization', () => {
@@ -109,7 +112,7 @@ describe('Hooks Deep Coverage (v0.6.x Graph Era)', () => {
             const { result } = renderHook(() => useReducer(reducer, 0, initFn, 'lazy_label'), { wrapper });
 
             expect(result.current[0]).toBe(100);
-            expect(__test__.history.has('lazy_label')).toBe(true);
+            expect(findKey('lazy_label')).toBeDefined();
         });
     });
 
@@ -134,7 +137,7 @@ describe('Hooks Deep Coverage (v0.6.x Graph Era)', () => {
         const { result } = renderHook(() => useCallback(() => "hello", [], "test_cb"), { wrapper });
 
         expect(result.current()).toBe("hello");
-        expect(__test__.history.get('test_cb')?.role).toBe('proj');
+        expect(__test__.history.get(findKey('test_cb')!)?.role).toBe('proj');
     });
 
     it('useTransition: returns standard transition tuple', () => {
@@ -175,6 +178,6 @@ describe('Hooks Deep Coverage (v0.6.x Graph Era)', () => {
         // We pass the label as the 3rd arg (permalink in standard React, label in Basis overload)
         const { result } = renderHook(() => useActionState(mockAction, 0, 'babel_label'), { wrapper });
 
-        expect(__test__.history.has('babel_label')).toBe(true);
+        expect(findKey('babel_label')).toBeDefined();
     });
 });

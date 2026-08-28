@@ -4,6 +4,7 @@ import { calculateCosineSimilarity } from "./math";
 import { identifyTopIssues } from "./ranker";
 import { RingBufferMetadata, SignalRole, RankedIssue, ViolationDetail } from "./types";
 import { instance } from "../engine";
+import { parseLabel } from "./label";
 
 const isWeb = typeof window !== 'undefined' && typeof window.document !== 'undefined';
 const LAST_LOG_TIMES = new Map<string, number>();
@@ -38,11 +39,6 @@ const STYLES = {
   subText: `color: ${THEME.muted}; font-size: 11px;`,
   bold: "font-weight: bold;",
   label: "background: #dfe6e9; color: #2d3436; padding: 0 4px; border-radius: 3px; font-family: monospace; font-weight: bold; border: 1px solid #b2bec3;",
-};
-
-const parseLabel = (label: string) => {
-  const parts = label.split(' -> ');
-  return { file: parts[0] || "Unknown", name: parts[1] || label };
 };
 
 const shouldLog = (key: string) => {
@@ -370,9 +366,9 @@ export const displayCausalHint = (targetLabel: string, targetMeta: RingBufferMet
 
 export const displayViolentBreaker = (label: string, count: number, threshold: number) => {
   if (!isWeb) return;
-  const parts = label.split(' -> ');
+  const { name } = parseLabel(label);
   console.group(`%c 🛑 BASIS CRITICAL | CIRCUIT BREAKER `, STYLES.headerProblem);
-  console.error(`INFINITE LOOP DETECTED\nVariable: ${parts[1] || label}\nFrequency: ${count} updates/sec`);
+  console.error(`INFINITE LOOP DETECTED\nVariable: ${name}\nFrequency: ${count} updates/sec`);
   console.log(`%cACTION: Update BLOCKED to prevent browser freeze.`, `color: ${THEME.problem}; font-weight: bold;`);
   console.groupEnd();
 };
