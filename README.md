@@ -25,7 +25,7 @@ npm i react-state-basis
 ```
 
 ### 2. Setup (Vite)
-Add the plugin to your `vite.config.ts`. The Babel plugin auto-labels your hooks—you continue importing from `react` as normal.
+Add the plugin to your `vite.config.ts`. The Babel plugin auto-labels your hooks - you continue importing from `react` as normal.
 
 ```ts
 import { defineConfig } from 'vite';
@@ -57,7 +57,7 @@ root.render(
 ```
 
 ### 4. Verify the Signal
-Drop this pattern into any component. Basis will identify the rhythm of the debt within ~100ms.
+Drop this pattern into any component. For this pattern, Basis typically flags the rhythm of the debt within ~100ms; detection latency can vary for other patterns.
 
 ```tsx
 const [a, setA] = useState(0);
@@ -81,7 +81,7 @@ Fix: Derive b during the render phase (remove effect) or wrap in useMemo.
 ---
 
 ### 5. Control & Scope
-*   **Ghost Mode:** Disable the Matrix UI while keeping console-based forensics active by setting `showHUD={false}` on the provider.
+*   **Ghost Mode:** Disable the visual overlay while keeping console-based forensics active by setting `showHUD={false}` on the provider.
 *   **Selective Auditing:** Add `// @basis-ignore` at the top of any file to disable instrumentation. Recommended for:
     *   High-frequency animation logic (>60fps)
     *   Third-party library wrappers
@@ -91,28 +91,28 @@ Fix: Derive b during the render phase (remove effect) or wrap in useMemo.
 
 ## HUD
 
-The optional HUD shows your **State Basis Matrix** in real-time. Purple pulses ($\Omega$) are Context anchors; Red pulses (!) are redundant shadows.
+The optional overlay shows your component's state updates in real time. Purple pulses mark updates coming from Context; red pulses mark state that looks like a redundant copy of something else.
 
 <p align="center">
   <img src="./assets/050Basis.gif" width="800" alt="Basis Demo" />
 </p>
 
-> **Note:** While the HUD visualizes real-time updates, the **Architectural Health Report** (Console) provides the deep topological analysis.
+> **Note:** The HUD shows updates as they happen. The **Architectural Health Report** (Console) looks at the whole update graph together, so it can catch patterns a single glance at the HUD would miss.
 
 ---
 
 ## What Basis Detects
 
-Basis draws on ideas from graph theory, signal processing, and linear algebra to flag architectural issues static linters miss:
+Basis watches *when* your state updates and looks for timing patterns that usually mean architectural debt - two states always changing together, an effect immediately re-triggering a render, a click that fans out into updates across unrelated files. Every flag below is a signal to investigate, not a verified defect:
 
-- **⚡ Double Renders (Sync Leaks)** - Detects when a `useEffect` triggers a state update immediately after a render, forcing the browser to paint twice.
-- **⚡ Prime Movers (Root Causes)** - Ignores downstream symptoms and points you to the exact hook or event that started the chain reaction.
-- **⚡ Fragmented Updates** - Detects when a single click forces updates in multiple different files/contexts simultaneously (Tearing risk).
-- **Ω Context Mirroring** - Detects when you redundantly copy Global Context data into Local State (creating two sources of truth).
-- **♊ Duplicate State** - Identifies variables that always update at the exact same time and should be merged (e.g. `isLoading` + `isSuccess`).
+- **⚡ Double Renders (Sync Leaks)** - A `useEffect` triggers a state update immediately after a render, forcing the browser to paint twice.
+- **⚡ Prime Movers (Likely Root Causes)** - Skips downstream symptoms and points you to the hook or event most likely to have started the chain reaction. When multiple updates fire in the same tick, Basis ranks candidates by their position in the update graph rather than asserting a single definitive cause.
+- **⚡ Fragmented Updates** - A single click forces updates in multiple different files or contexts at once (tearing risk).
+- **Context Mirroring** - You're redundantly copying Global Context data into local state, creating two sources of truth.
+- **Duplicate State** - Two variables always update at the exact same time and should probably be merged (e.g. `isLoading` + `isSuccess`).
 - **🛑 Infinite Loops** - A safety circuit-breaker that kills the auditor before a recursive update freezes your browser.
 
-[**See examples & fixes →**](https://github.com/liovic/react-state-basis/wiki/The-Forensic-Catalog)
+Under the hood this is timing correlation over an update graph - ideas borrowed loosely from graph theory and signal processing, not a formal proof. [**See examples & fixes →**](https://github.com/liovic/react-state-basis/wiki/The-Forensic-Catalog)
 
 ---
 
@@ -121,9 +121,9 @@ Basis draws on ideas from graph theory, signal processing, and linear algebra to
 ### Architectural Health Report
 Check your entire app's state architecture by running `window.printBasisReport()` in the console.
 
-*   **Refactor Priorities:** Ranks issues with eigenvector centrality on the update graph so you can see which hook or event fans out the most.
+*   **Refactor Priorities:** Ranks issues by blast radius on the update graph, so you can see which hook or event has the widest fan-out across the rest of your app.
 *   **Efficiency Score:** A rough ratio of independent update sources vs effect-driven follow-up updates. Diagnostic, not a grade.
-*   **Sync Issues:** Groups entangled variables into clusters (e.g., Boolean Explosions).
+*   **Sync Issues:** Groups variables that tend to update together into clusters (e.g., boolean pairs that are really one piece of state).
 
 ### Hardware Telemetry
 Verify engine efficiency and heap stability in real-time via `window.getBasisMetrics()`.
@@ -132,7 +132,7 @@ Verify engine efficiency and heap stability in real-time via `window.getBasisMet
 
 ## Real-World Evidence
 
-Basis is verified against industry-standard codebases to ensure high-fidelity detection:
+Basis has been tested against industry-standard codebases:
 
 *   **Excalidraw (114k⭐)** - Proposed a theme-sync fix [**PR #10637**](https://github.com/excalidraw/excalidraw/pull/10637) (not merged)
 *   **shadcn-admin (10k⭐)** - Detected redundant state pattern in viewport detection hooks. [**PR #274**](https://github.com/satnaing/shadcn-admin/pull/274) (merged)
@@ -144,7 +144,7 @@ Basis is verified against industry-standard codebases to ensure high-fidelity de
 ### Zustand
 
 Wrap your store with `basisLogger` to give Basis visibility into external
-store updates. Store signals appear as Σ in the HUD and health report.
+store updates. Store signals appear in the HUD and health report alongside your React state.
 
 ```typescript
 import { create } from 'zustand';
@@ -183,19 +183,19 @@ Planned: XState, React Query, Redux Toolkit. Community PRs welcome.
 
 ## Documentation & Theory
 
-Basis is built on heuristics inspired by **Signal Processing**, **Linear Algebra**, and **Graph Theory**. [**The wiki**](https://github.com/liovic/react-state-basis/wiki) explains the mental model and the engine. It is a heuristic, not a proof.
+The engine uses graph and timing heuristics to infer likely architectural issues from *when* state changes, not *what* it changes to. [**The wiki**](https://github.com/liovic/react-state-basis/wiki) explains the full mental model, the math it borrows from, and the engine internals. It is a heuristic, not a proof.
 
 ---
 
 ## Roadmap
 
-Each era of Basis answers a different architectural question:
+Each version answers a different architectural question:
 
-✓ **v0.4.x** - The Correlation Era - *Are these states moving together?*  
-✓ **v0.5.x** - The Decomposition Era - *Is this local state just a copy of Context?*  
-→ **v0.6.x** - The Graph Era - *Which bug should I fix first for maximum impact?*  
-**v0.7.x** - The Information Era - *Does this state carry real information, or is it derivative?*   
-**v0.8.x** - The Manifold Era - *How many hooks does your component actually need?*
+✓ **v0.4.x** - Detect states that always move together *(The Correlation Era)*  
+✓ **v0.5.x** - Detect local copies of Context *(The Decomposition Era)*  
+→ **v0.6.x** - Rank which update fans out widest *(The Graph Era)*  
+**v0.7.x** - Detect derivative vs. independent state *(The Information Era)*  
+**v0.8.x** - Estimate how much local state a component actually needs *(The Manifold Era)*
 
 
 [**More info**](https://github.com/liovic/react-state-basis/wiki/Roadmap)
