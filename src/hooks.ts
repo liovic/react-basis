@@ -55,17 +55,14 @@ interface BasisContext<T> extends React.Context<T> {
   _basis_label?: string;
 }
 
-/**
- * React 19 Type Definitions for strictness.
- */
 interface React19Extended {
-  useOptimistic<S, P>(passthrough: S, reducer?: (state: S, payload: P) => S): [S, (payload: P) => void];
-  useActionState<State, Payload>(
+  useOptimistic?<S, P>(passthrough: S, reducer?: (state: S, payload: P) => S): [S, (payload: P) => void];
+  useActionState?<State, Payload>(
     action: (state: State, payload: Payload) => Promise<State> | State,
     initialState: State,
     permalink?: string
   ): [state: State, dispatch: (payload: Payload) => void, isPending: boolean];
-  use<T>(usable: React.Usable<T>): T;
+  use?<T>(usable: React.Usable<T>): T;
 }
 
 const React19 = React as unknown as React19Extended;
@@ -218,6 +215,10 @@ export function useEffect(effect: React.EffectCallback, deps?: React.DependencyL
     endEffectTracking();
     return typeof destructor === 'function' ? destructor : undefined;
   }, deps);
+
+  reactUseEffect(() => {
+    return () => { unregisterVariable(storageKey); };
+  }, [storageKey]);
 }
 
 export function useLayoutEffect(effect: React.EffectCallback, deps?: React.DependencyList, label?: string): void {
@@ -230,6 +231,10 @@ export function useLayoutEffect(effect: React.EffectCallback, deps?: React.Depen
     endEffectTracking();
     return typeof destructor === 'function' ? destructor : undefined;
   }, deps);
+
+  reactUseEffect(() => {
+    return () => { unregisterVariable(storageKey); };
+  }, [storageKey]);
 }
 
 // --- React 19 ---
@@ -247,7 +252,10 @@ export function useOptimistic<S, P>(
     return () => { unregisterVariable(storageKey); };
   }, [storageKey]);
 
-  const [state, reactAddOptimistic] = React19.useOptimistic(passthrough, reducer);
+  const [state, reactAddOptimistic] = React19.useOptimistic!(
+    passthrough,
+    reducer as (state: S, action: P) => S
+  );
 
   const addOptimistic = reactUseCallback((payload: P) => {
     if (recordUpdate(storageKey)) {
@@ -271,7 +279,7 @@ export function useActionState<State, Payload>(
   const instanceId = useInstanceId();
   const storageKey = withInstance(effectiveLabel, instanceId);
 
-  const [state, reactDispatch, isPending] = React19.useActionState(action, initialState, actualPermalink);
+  const [state, reactDispatch, isPending] = React19.useActionState!(action, initialState, actualPermalink);
 
   reactUseEffect(() => {
     registerVariable(storageKey, { role: SignalRole.LOCAL });
@@ -296,7 +304,7 @@ export const useInsertionEffect = React.useInsertionEffect;
 export const useSyncExternalStore = reactUseSyncExternalStore;
 export const useTransition = reactUseTransition;
 export const useDeferredValue = reactUseDeferredValue;
-export const use = React19.use;
+export const use = React19.use!;
 
 export const __test__ = {
   registerVariable,

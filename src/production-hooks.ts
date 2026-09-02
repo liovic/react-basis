@@ -3,6 +3,18 @@
 import * as React from 'react';
 import type { FC, ReactNode, DependencyList, EffectCallback } from 'react';
 
+interface React19Extended {
+    useOptimistic?<S, P>(passthrough: S, reducer?: (state: S, payload: P) => S): [S, (payload: P) => void];
+    useActionState?<State, Payload>(
+        action: (state: State, payload: Payload) => Promise<State> | State,
+        initialState: State,
+        permalink?: string
+    ): [state: State, dispatch: (payload: Payload) => void, isPending: boolean];
+    use?<T>(usable: React.Usable<T>): T;
+}
+
+const React19 = React as unknown as React19Extended;
+
 export const BasisProvider: FC<{
     children: ReactNode;
     debug?: boolean;
@@ -46,7 +58,7 @@ export const useTransition = (_label?: string) => React.useTransition();
 export const useDeferredValue = <T>(value: T, _label?: string) => React.useDeferredValue(value);
 
 export const useOptimistic = <S, P>(passthrough: S, reducer?: (state: S, payload: P) => S, _label?: string) =>
-    (React as any).useOptimistic(passthrough, reducer);
+    React19.useOptimistic!(passthrough, reducer as (state: S, action: P) => S);
 
 export const useActionState = <State, Payload>(
     action: (state: State, payload: Payload) => Promise<State> | State,
@@ -55,11 +67,12 @@ export const useActionState = <State, Payload>(
     _label?: string
 ) => {
     const actualPermalink = typeof permalink === 'string' && _label === undefined ? undefined : permalink;
-    return (React as any).useActionState(action, initialState, actualPermalink);
+    return React19.useActionState!(action, initialState, actualPermalink);
 };
+
+export const use = React19.use!;
 
 export const useId = (_label?: string) => React.useId();
 export const useDebugValue = React.useDebugValue;
 export const useImperativeHandle = React.useImperativeHandle;
 export const useSyncExternalStore = React.useSyncExternalStore;
-export const use = (React as any).use;

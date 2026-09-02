@@ -150,7 +150,7 @@ export const StressLab = () => {
                         <strong>TOTAL_INP:</strong> The absolute interaction-to-paint delay observed by the browser engine. Includes hardware interrupt latency, task-queue wait times, and main-thread saturation.
                     </div>
                     <div style={{ marginTop: '10px', fontStyle: 'italic', color: 'var(--zinc-500)', fontSize: '10px' }}>
-                        * The observed delta between these metrics constitutes the "Cost of Observation"—the unavoidable browser scheduling overhead inherent in runtime instrumentation.
+                        * The observed delta between these metrics constitutes the "Cost of Observation"-the unavoidable browser scheduling overhead inherent in runtime instrumentation.
                     </div>
                 </div>
 

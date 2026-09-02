@@ -7,9 +7,9 @@ By wrapping your store with `basisLogger`, Basis can treat Zustand stores as
 architectures where local React state and external store state interact.
 
 This lets Basis detect:
-- **Store Mirroring** — local state duplicating Zustand store values
-- **Global Event Fragmentation** — a single event updating both store and local state simultaneously
-- **Store Sync Leaks** — effects driven by store changes forcing extra renders
+- **Store Mirroring** - local state duplicating Zustand store values
+- **Global Event Fragmentation** - a single event updating both store and local state simultaneously
+- **Store Sync Leaks** - effects driven by store changes forcing extra renders
 
 ## Running this example
 

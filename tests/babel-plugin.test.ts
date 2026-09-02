@@ -1,3 +1,5 @@
+// tests/babel-plugin.test.ts
+
 import { describe, it, expect } from 'vitest';
 import { transformSync } from '@babel/core';
 import plugin from '../src/babel-plugin.js';
@@ -19,27 +21,27 @@ const run = (code: string, filename = 'MyComponent.js'): string => {
 };
 
 describe('babel-plugin-basis-transform', () => {
-  it('labels a plain useState call with file -> varName', () => {
+  it('labels a plain useState call with file -> varName:line', () => {
     const out = run(`
-      import { useState } from 'react';
-      function Comp() {
-        const [count, setCount] = useState(0);
-      }
-    `);
+    import { useState } from 'react';
+    function Comp() {
+      const [count, setCount] = useState(0);
+    }
+  `);
 
-    expect(out).toContain("useState(0, \"MyComponent.js -> count\")");
+    expect(out).toMatch(/useState\(0, "MyComponent\.js -> count:\d+"\)/);
     expect(out).toMatch(/import\s*{\s*useState\s*}\s*from\s*["']react-state-basis["']/);
   });
 
   it('handles member-expression callees (React.useState(...))', () => {
     const out = run(`
-      import * as React from 'react';
-      function Comp() {
-        const [count, setCount] = React.useState(0);
-      }
-    `);
+    import * as React from 'react';
+    function Comp() {
+      const [count, setCount] = React.useState(0);
+    }
+  `);
 
-    expect(out).toContain("React.useState(0, \"MyComponent.js -> count\")");
+    expect(out).toMatch(/React\.useState\(0, "MyComponent\.js -> count:\d+"\)/);
   });
 
   it('is idempotent, does not double-label a call that already has a label arg', () => {
@@ -57,29 +59,76 @@ describe('babel-plugin-basis-transform', () => {
     expect(out).not.toContain("MyComponent.js -> count");
   });
 
-  it('handles useReducer 2-arg form (no lazy init)', () => {
+  it('gives two same-named useState calls distinct line-suffixed labels', () => {
     const out = run(`
-      import { useReducer } from 'react';
-      function Comp() {
-        const [state, dispatch] = useReducer(reducer, initialState);
+      import { useState } from 'react';
+      function useFoo() {
+        const [value, setValue] = useState(0);
+      }
+      function useBar() {
+        const [value, setValue] = useState(0);
       }
     `);
 
-    expect(out).toContain(
-      'useReducer(reducer, initialState, undefined, "MyComponent.js -> state")'
+    const labels = [...out.matchAll(/useState\(0, "(MyComponent\.js -> value:\d+)"\)/g)]
+      .map(m => m[1]);
+
+    expect(labels).toHaveLength(2);
+    expect(labels[0]).not.toBe(labels[1]);
+    expect(out).not.toMatch(/useState\(0, "MyComponent\.js -> value"\)/);
+  });
+
+  it('labels useMemo / useEffect with the same file -> name:line scheme', () => {
+    const out = run(`
+      import { useMemo, useEffect } from 'react';
+      function Comp() {
+        const boxed = useMemo(() => 1, []);
+        useEffect(() => {}, []);
+      }
+    `);
+
+    expect(out).toMatch(/useMemo\(\(\) => 1, \[\], "MyComponent\.js -> boxed:\d+"\)/);
+    expect(out).toMatch(/useEffect\(\(\) => \{\}, \[\], "MyComponent\.js -> effect_L\d+:\d+"\)/);
+  });
+
+  it('routes an aliased import to basis but still does not label the alias call site', () => {
+    const out = run(`
+      import { useState as useLocalState } from 'react';
+      function Comp() {
+        const [count, setCount] = useLocalState(0);
+      }
+    `);
+
+    expect(out).toMatch(
+      /import\s*\{\s*useState as useLocalState\s*\}\s*from\s*["']react-state-basis["']/
+    );
+    expect(out).toContain('useLocalState(0)');
+    expect(out).not.toMatch(/useLocalState\(0,\s*"/);
+  });
+
+  it('handles useReducer 2-arg form (no lazy init)', () => {
+    const out = run(`
+    import { useReducer } from 'react';
+    function Comp() {
+      const [state, dispatch] = useReducer(reducer, initialState);
+    }
+  `);
+
+    expect(out).toMatch(
+      /useReducer\(reducer, initialState, undefined, "MyComponent\.js -> state:\d+"\)/
     );
   });
 
   it('handles useReducer 3-arg lazy-init form', () => {
     const out = run(`
-      import { useReducer } from 'react';
-      function Comp() {
-        const [state, dispatch] = useReducer(reducer, initialArg, init);
-      }
-    `);
+    import { useReducer } from 'react';
+    function Comp() {
+      const [state, dispatch] = useReducer(reducer, initialArg, init);
+    }
+  `);
 
-    expect(out).toContain(
-      'useReducer(reducer, initialArg, init, "MyComponent.js -> state")'
+    expect(out).toMatch(
+      /useReducer\(reducer, initialArg, init, "MyComponent\.js -> state:\d+"\)/
     );
   });
 
@@ -94,7 +143,7 @@ describe('babel-plugin-basis-transform', () => {
 
     expect(out).toContain('useState(0)');
     expect(out).not.toContain('MyComponent.js -> count');
-    
+
     expect(out).not.toMatch(/react-state-basis/);
   });
 

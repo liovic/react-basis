@@ -15,10 +15,9 @@ To maintain correctness and long-term stability, contributions follow a **two-tr
 The core engine is responsible for all detection logic and guarantees.
 
 **Non-negotiable properties of the engine:**
-- Deterministic results (same inputs → same outputs)
-- Reproducible analysis across runs
-- No heuristic shortcuts
-- No behavior that depends on timing accidents or environment noise
+- Deterministic results (same input trace → same output, every run)
+- Reproducible analysis - no reliance on randomness or wall-clock timing in the detection math itself
+- Detection is heuristic by design (timing-correlation over a fixed window, compared against tuned thresholds) - that's not a bug to eliminate, it's the mechanism. What's non-negotiable is that any threshold or constant is documented with the reasoning/data behind it, not just handed down as a magic number.
 
 Changes to the core engine must preserve these invariants.
 
@@ -63,7 +62,7 @@ The engine must remain effectively invisible in production builds.
 - No runtime cost once disabled
 
 ### Determinism First
-Auditing results must depend **only** on observed state behavior — not timing variance, browser quirks, or execution order accidents.
+Auditing results must depend only on the recorded update trace, not on wall-clock timing, browser quirks, or execution order accidents outside that trace. The engine's *conclusions* (duplicate state, causal leak, etc.) are statistical inferences from that trace, not proofs - thresholds like SIMILARITY_THRESHOLD and CAUSAL_MARGIN should be justified in code comments or a linked doc when changed.
 
 ---
 

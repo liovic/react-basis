@@ -93,4 +93,47 @@ describe('Instance Identity', () => {
     expect(instance.redundantLabels.has(keys[0])).toBe(false);
     expect(instance.redundantLabels.has(keys[1])).toBe(false);
   });
+
+  it('does NOT collide two different call sites that happen to share an auto-generated label', () => {
+    const useFoo = () => useState(0, 'Shared.tsx -> value');
+    const useBar = () => useState(0, 'Shared.tsx -> value');
+
+    const Widget: React.FC = () => {
+      const [a] = useFoo();
+      const [b] = useBar();
+      return <div>{a}{b}</div>;
+    };
+
+    render(
+      <BasisProvider debug>
+        <Widget />
+      </BasisProvider>
+    );
+
+    const keys = findKeys('Shared.tsx -> value');
+    expect(keys.length).toBe(2);
+  });
+
+  it('keeps history correctly attributed to each item after removing one from the middle of a keyed list', () => {
+    const Row: React.FC<{ id: number }> = ({ id }) => {
+      const [isOpen] = useState(false, 'KeyedRow.tsx -> isOpen');
+      return <div data-testid={`row-${id}`}>{String(isOpen)}</div>;
+    };
+
+    const List: React.FC<{ items: number[] }> = ({ items }) => (
+      <BasisProvider debug>
+        {items.map(id => <Row key={id} id={id} />)}
+      </BasisProvider>
+    );
+
+    const { rerender } = render(<List items={[1, 2, 3]} />);
+    const keysBefore = findKeys('KeyedRow.tsx -> isOpen');
+    expect(keysBefore.length).toBe(3);
+
+    rerender(<List items={[1, 3]} />);
+
+    const keysAfter = findKeys('KeyedRow.tsx -> isOpen');
+    expect(keysAfter.length).toBe(2);
+    keysAfter.forEach(k => expect(keysBefore).toContain(k));
+  });
 });
