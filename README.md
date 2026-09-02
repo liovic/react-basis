@@ -5,9 +5,10 @@
 <div align="center">
 
 # react-state-basis
-### Runtime Architectural Auditor for React
 
-**Basis tracks when state updates (never what) to catch architectural debt that standard tools miss, while keeping your data private.**
+### Runtime diagnostics for React state
+
+**Basis observes when state updates happen and uses those patterns to highlight state-management issues that can be difficult to spot in a code review or profiler. It does not inspect state values.**
 
 [![npm version](https://img.shields.io/npm/v/react-state-basis.svg?style=flat-square)](https://www.npmjs.com/package/react-state-basis)
 [![GitHub stars](https://img.shields.io/github/stars/liovic/react-state-basis.svg?style=flat-square)](https://github.com/liovic/react-state-basis/stargazers)
@@ -20,12 +21,16 @@
 ## Quick Start
 
 ### 1. Install
+
 ```bash
 npm i react-state-basis
 ```
 
-### 2. Setup (Vite)
-Add the plugin to your `vite.config.ts`. The Babel plugin auto-labels your hooks - you continue importing from `react` as normal.
+### 2. Setup with Vite
+
+Add the plugin to your `vite.config.ts`.
+
+The Babel plugin labels React hooks automatically, so you can continue importing from `react` as usual.
 
 ```ts
 import { defineConfig } from 'vite';
@@ -34,43 +39,55 @@ import { basis } from 'react-state-basis/vite';
 
 export default defineConfig({
   plugins: [
-    react({ 
-      babel: { plugins: [['react-state-basis/plugin']] } 
+    react({
+      babel: {
+        plugins: [['react-state-basis/plugin']],
+      },
     }),
-    basis()
-  ]
+    basis(),
+  ],
 });
 ```
+This is the supported setup today. Next.js / SWC is not instrumented yet.
 
 ### 3. Initialize
+
 ```tsx
 import { BasisProvider } from 'react-state-basis';
 
 root.render(
-  <BasisProvider 
+  <BasisProvider
     debug={true}
-    showHUD={true} // Set to false for console-only forensics
+    showHUD={true}
   >
     <App />
   </BasisProvider>
 );
 ```
 
-### 4. Verify the Signal
-Drop this pattern into any component. For this pattern, Basis typically flags the rhythm of the debt within ~100ms; detection latency can vary for other patterns.
+Set `showHUD={false}` to keep the diagnostics in the console without showing the overlay.
+
+### 4. Try it
+
+For example:
 
 ```tsx
 const [a, setA] = useState(0);
 const [b, setB] = useState(0);
 
 useEffect(() => {
-  setB(a + 1); // ⚡ BASIS: "Double Render Detected"
+  setB(a + 1);
 }, [a]);
 
-return <button onClick={() => setA(a + 1)}>Pulse Basis</button>;
+return (
+  <button onClick={() => setA(a + 1)}>
+    Update
+  </button>
+);
 ```
 
-Click the button. You should see this in your console:
+When the button is clicked, Basis can identify the effect-driven update pattern and report where it originated. You should see in your console:
+
 ```
 ⚡ BASIS | DOUBLE RENDER
 📍 Location: YourComponent.tsx
@@ -78,64 +95,141 @@ Issue: effect_L5 triggers b in a separate frame.
 Fix: Derive b during the render phase (remove effect) or wrap in useMemo.
 ```
 
----
-
-### 5. Control & Scope
-*   **Ghost Mode:** Disable the visual overlay while keeping console-based forensics active by setting `showHUD={false}` on the provider.
-*   **Selective Auditing:** Add `// @basis-ignore` at the top of any file to disable instrumentation. Recommended for:
-    *   High-frequency animation logic (>60fps)
-    *   Third-party library wrappers
-    *   Intentional synchronization (e.g., local mirrors of external caches)
+Detection happens at runtime and timing varies by pattern.
 
 ---
 
 ## HUD
 
-The optional overlay shows your component's state updates in real time. Purple pulses mark updates coming from Context; red pulses mark state that looks like a redundant copy of something else.
+The optional HUD shows state updates as they happen.
 
 <p align="center">
-  <img src="./assets/050Basis.gif" width="800" alt="Basis Demo" />
+  <img src="./assets/050Basis.gif" width="800" alt="Basis Demo">
 </p>
 
-> **Note:** The HUD shows updates as they happen. The **Architectural Health Report** (Console) looks at the whole update graph together, so it can catch patterns a single glance at the HUD would miss.
+The HUD is useful for seeing individual updates. The console report looks at the observed update graph over time, which can reveal patterns that are harder to see from a single interaction.
 
 ---
 
-## What Basis Detects
+## What Basis Looks For
 
-Basis watches *when* your state updates and looks for timing patterns that usually mean architectural debt - two states always changing together, an effect immediately re-triggering a render, a click that fans out into updates across unrelated files. Every flag below is a signal to investigate, not a verified defect:
+Basis does not try to determine whether your state is "correct." Instead, it looks for update patterns that are often worth investigating.
 
-- **⚡ Double Renders (Sync Leaks)** - A `useEffect` triggers a state update immediately after a render, forcing the browser to paint twice.
-- **⚡ Prime Movers (Likely Root Causes)** - Skips downstream symptoms and points you to the hook or event most likely to have started the chain reaction. When multiple updates fire in the same tick, Basis ranks candidates by their position in the update graph rather than asserting a single definitive cause.
-- **⚡ Fragmented Updates** - A single click forces updates in multiple different files or contexts at once (tearing risk).
-- **Context Mirroring** - You're redundantly copying Global Context data into local state, creating two sources of truth.
-- **Duplicate State** - Two variables always update at the exact same time and should probably be merged (e.g. `isLoading` + `isSuccess`).
-- **🛑 Infinite Loops** - A safety circuit-breaker that kills the auditor before a recursive update freezes your browser.
+### Effect-driven updates
 
-Under the hood this is timing correlation over an update graph - ideas borrowed loosely from graph theory and signal processing, not a formal proof. [**See examples & fixes →**](https://github.com/liovic/react-state-basis/wiki/The-Forensic-Catalog)
+A `useEffect` causes another state update immediately after rendering.
+
+This can be a sign that some state could be derived during render instead.
+
+### Correlated state
+
+Two pieces of state repeatedly update within the same time window.
+
+For example:
+
+```tsx
+const [isLoading, setIsLoading] = useState(false);
+const [isSuccess, setIsSuccess] = useState(false);
+```
+
+If these values consistently change together, it may be worth checking whether they could be represented by a single state value.
+
+Basis reports the correlation; it does not assume that the states should be merged.
+
+### Fragmented updates
+
+A single interaction causes updates across multiple components, files, contexts, or stores.
+
+Sometimes this is intentional. In other cases, it can indicate that state ownership is spread across several places.
+
+### Context mirroring
+
+Local state is repeatedly updated from Context state.
+
+This can create two representations of the same information and is worth reviewing when the local copy does not have an independent purpose.
+
+### Update origins
+
+When several updates occur together, Basis can use the observed update graph to identify which updates appear upstream of others.
+
+This is intended to help investigate a chain of updates rather than simply reporting every downstream symptom.
+
+### Infinite update protection
+
+Basis includes safeguards to stop its own instrumentation from continuing indefinitely when an application enters a recursive update loop.
 
 ---
 
-## Reports & Telemetry
+### Important: these are signals, not proofs
 
-### Architectural Health Report
-Check your entire app's state architecture by running `window.printBasisReport()` in the console.
+Basis uses runtime timing and correlation heuristics.
 
-*   **Refactor Priorities:** Ranks issues by blast radius on the update graph, so you can see which hook or event has the widest fan-out across the rest of your app.
-*   **Efficiency Score:** A rough ratio of independent update sources vs effect-driven follow-up updates. Diagnostic, not a grade.
-*   **Sync Issues:** Groups variables that tend to update together into clusters (e.g., boolean pairs that are really one piece of state).
+A detected pattern is **not automatically a bug**, and Basis does not know the intent behind your application architecture.
 
-### Hardware Telemetry
-Verify engine efficiency and heap stability in real-time via `window.getBasisMetrics()`.
+Use the results as prompts for investigation rather than as rules for how React code should be written.
+
+[See examples and possible fixes →](https://github.com/liovic/react-state-basis/wiki/The-Forensic-Catalog)
 
 ---
 
-## Real-World Evidence
+## Reports
 
-Basis has been tested against industry-standard codebases:
+Run:
 
-*   **Excalidraw (114k⭐)** - Proposed a theme-sync fix [**PR #10637**](https://github.com/excalidraw/excalidraw/pull/10637) (not merged)
-*   **shadcn-admin (10k⭐)** - Detected redundant state pattern in viewport detection hooks. [**PR #274**](https://github.com/satnaing/shadcn-admin/pull/274) (merged)
+```js
+window.printBasisReport()
+```
+
+to print a summary of the observed update graph.
+
+The report can include:
+
+* **Update sources** - where observed update chains appear to originate.
+* **Fan-out** - which updates are followed by the largest number of downstream updates.
+* **Correlated state** - state variables that repeatedly update together.
+* **Effect-driven updates** - updates that occur as a consequence of effects.
+* **Engine metrics** - runtime measurements collected by the Basis engine.
+
+These metrics are diagnostic rather than a score for the quality of your application.
+
+### Runtime metrics
+
+You can inspect engine metrics with:
+
+```js
+window.getBasisMetrics()
+```
+
+---
+
+## Controlling the Instrumentation
+
+### Console-only mode
+
+Disable the HUD while keeping diagnostics enabled:
+
+```tsx
+<BasisProvider showHUD={false}>
+  <App />
+</BasisProvider>
+```
+
+### Ignoring files
+
+Add:
+
+```ts
+// @basis-ignore
+```
+
+to a file to disable Basis instrumentation for that file.
+
+This can be useful for:
+
+* high-frequency animation code
+* third-party library wrappers
+* intentionally synchronized state
+* code where instrumentation is not useful
 
 ---
 
@@ -143,62 +237,89 @@ Basis has been tested against industry-standard codebases:
 
 ### Zustand
 
-Wrap your store with `basisLogger` to give Basis visibility into external
-store updates. Store signals appear in the HUD and health report alongside your React state.
+Basis can observe Zustand store updates alongside React state.
 
 ```typescript
 import { create } from 'zustand';
 import { basisLogger } from 'react-state-basis/zustand';
 
 export const useStore = create(
-  basisLogger((set) => ({
-    theme: 'light',
-    toggleTheme: () => set((state) => ({ 
-      theme: state.theme === 'light' ? 'dark' : 'light' 
-    })),
-  }), 'MyStore')
+  basisLogger(
+    (set) => ({
+      theme: 'light',
+
+      toggleTheme: () =>
+        set((state) => ({
+          theme: state.theme === 'light' ? 'dark' : 'light',
+        })),
+    }),
+    'MyStore'
+  )
 );
 ```
 
-This enables detection of **Store Mirroring**, **Store Sync Leaks**, and
-**Global Event Fragmentation** across React and Zustand state simultaneously.
+This allows React and Zustand updates to appear in the same runtime graph.
 
-[See full Zustand example →](./examples/basis-zustand/)
+[See the Zustand example →](./examples/basis-zustand/)
 
-### More integrations coming
+### Planned integrations
 
-Planned: XState, React Query, Redux Toolkit. Community PRs welcome.
+XState, React Query, and Redux Toolkit are planned.
+
+Community contributions are welcome.
 
 ---
 
 ## Performance & Privacy
 
-**Development:** <1ms overhead per update cycle, zero heap growth  
-**Production:** ~0.01ms per hook (monitoring disabled, ~2-3KB bundle)  
-**Privacy:** Only tracks update timing, never state values
+Basis is designed primarily as a development-time diagnostic tool.
 
-[**See benchmarks →**](https://github.com/liovic/react-state-basis/wiki/Performance-Forensics)
+* **Development:** instrumentation overhead is designed to remain small; current benchmarks show less than 1ms per update cycle in tested scenarios.
+* **Production:** monitoring is disabled, with a small production footprint.
+* **Privacy:** Basis records update timing and relationships, not application state values.
+
+Actual overhead depends on the application and instrumentation configuration.
+
+[See benchmarks →](https://github.com/liovic/react-state-basis/wiki/Performance-Forensics)
 
 ---
 
-## Documentation & Theory
+## Real-World Examples
 
-The engine uses graph and timing heuristics to infer likely architectural issues from *when* state changes, not *what* it changes to. [**The wiki**](https://github.com/liovic/react-state-basis/wiki) explains the full mental model, the math it borrows from, and the engine internals. It is a heuristic, not a proof.
+Basis has also been tested against existing open-source applications.
+
+* **Excalidraw** - Basis identified a theme synchronization pattern and a possible simplification. [PR #10637](https://github.com/excalidraw/excalidraw/pull/10637) was proposed but not merged.
+* **shadcn-admin** - Basis identified a redundant state pattern in viewport detection hooks. [PR #274](https://github.com/satnaing/shadcn-admin/pull/274) was merged.
+
+These examples are intended as demonstrations of the tool's output, not as claims that every detected pattern represents a defect.
+
+---
+
+## How It Works
+
+Basis observes the timing and relationships between state updates while your application runs.
+
+It builds an in-memory representation of those updates and applies heuristics to identify recurring patterns.
+
+It does **not** need to inspect the values stored in your state to perform these checks.
+
+The analysis is intentionally heuristic. Runtime behavior can show that two things consistently happen together, but it cannot by itself prove why they happen together or whether the relationship is intentional.
+
+For a deeper look at the implementation and underlying model:
+
+[Read the documentation and theory →](https://github.com/liovic/react-state-basis/wiki)
 
 ---
 
 ## Roadmap
 
-Each version answers a different architectural question:
+* ✓ **v0.4.x** - Identify state that repeatedly updates together
+* ✓ **v0.5.x** - Identify local state synchronized from Context
+* → **v0.6.x** - Analyze update fan-out and likely upstream sources
+* **v0.7.x** - Improve detection of derived vs. independent state
+* **v0.8.x** - Explore how much local state components actually use
 
-✓ **v0.4.x** - Detect states that always move together *(The Correlation Era)*  
-✓ **v0.5.x** - Detect local copies of Context *(The Decomposition Era)*  
-→ **v0.6.x** - Rank which update fans out widest *(The Graph Era)*  
-**v0.7.x** - Detect derivative vs. independent state *(The Information Era)*  
-**v0.8.x** - Estimate how much local state a component actually needs *(The Manifold Era)*
-
-
-[**More info**](https://github.com/liovic/react-state-basis/wiki/Roadmap)
+[See the full roadmap →](https://github.com/liovic/react-state-basis/wiki/Roadmap)
 
 ---
 

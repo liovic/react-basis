@@ -45,7 +45,7 @@ const pruneGraph = () => {
       // Extract timestamp from "Event_Tick_1738492..."
       const parts = source.split('_');
       const timestamp = parseInt(parts[2], 10);
-      
+
       if (now - timestamp > EVENT_TTL) {
         instance.graph.delete(source);
       }
@@ -334,6 +334,15 @@ export const unregisterVariable = (l: string) => {
   instance.loopCounters.delete(l);
   instance.pausedVariables.delete(l);
   instance.redundantLabels.delete(l);
+
+  instance.graph.delete(l);
+  instance.graph.forEach((targets) => targets.delete(l));
+
+  instance.violationMap.delete(l);
+  instance.violationMap.forEach((list) => {
+    const idx = list.findIndex((v) => v.target === l);
+    if (idx !== -1) list.splice(idx, 1);
+  });
 };
 
 export const beginEffectTracking = (l: string) => {

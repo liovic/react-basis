@@ -180,4 +180,22 @@ describe('Hooks Deep Coverage (v0.6.x Graph Era)', () => {
 
         expect(findKey('babel_label')).toBeDefined();
     });
+
+    it('freezes the storage key to the label passed on first render, ignoring later changes', () => {
+        const { result, rerender } = renderHook(
+            ({ label }: { label: string }) => useState(0, label),
+            { wrapper, initialProps: { label: 'first_label' } }
+        );
+
+        expect(findKey('first_label')).toBeDefined();
+
+        rerender({ label: 'second_label' });
+
+        act(() => {
+            result.current[1](1);
+        });
+
+        expect(findKey('first_label')).toBeDefined();
+        expect(findKey('second_label')).toBeUndefined();
+    });
 });

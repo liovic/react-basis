@@ -95,7 +95,8 @@ module.exports = function (babel) {
           varName = `effect_L${p.node.loc?.start.line || 'unknown'}`;
         }
 
-        const uniqueLabel = `${fileName} -> ${varName}`;
+        const line = p.node.loc?.start.line ?? 'unknown';
+        const uniqueLabel = `${fileName} -> ${varName}:${line}`;
         const args = p.node.arguments;
 
         // Group 1: Label at index 1 (Standard 1-arg hooks + createContext)
