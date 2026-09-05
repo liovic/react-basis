@@ -15,3 +15,8 @@ export const parseLabel = (label: string) => {
 
 export const isSameField = (labelA: string, labelB: string): boolean =>
   stripInstance(labelA) === stripInstance(labelB);
+
+export const isEffectLabel = (name: string): boolean =>
+  /^effect_L\d+(:\d+)?$/.test(name) ||
+  name === 'anonymous_effect' ||
+  name === 'anonymous_layout_effect';

@@ -192,6 +192,64 @@ The report can include:
 
 These metrics are diagnostic rather than a score for the quality of your application.
 
+### Causal graph
+
+`printBasisReport()` gives a diagnosis. If you want to see the evidence that report is based on, Basis also exposes the observed update graph directly.
+
+`printBasisGraph()` does nothing unless `debug` is on (same as `printBasisReport()`). `getBasisGraph()` always returns the current snapshot, regardless of `debug`, since it's just serializing the graph, not printing anything.
+
+```js
+window.printBasisGraph()
+```
+
+prints it to the console, grouped by source:
+
+```
+📊 BASIS | CAUSAL GRAPH  7 nodes · 7 edges · 2 sources · buffer window 50
+parent → child = observed cause → update. (×N) = times in this window.
+⚡ Event · 3 targets · ×2
+    BooleanEntanglement.tsx → isLoading redundant
+    BooleanEntanglement.tsx → isSuccess redundant
+    BooleanEntanglement.tsx → hasData redundant
+↯ WeatherLab.tsx → effect @ L7
+    WeatherLab.tsx → fahrenheit (×2)
+```
+
+For the raw data, either from the console:
+
+```js
+window.getBasisGraph()
+```
+
+or imported directly, if you're building your own tooling on top of it rather than reading it from the console:
+
+```ts
+import { getBasisGraph } from 'react-state-basis';
+import type { BasisGraphJSON } from 'react-state-basis';
+```
+
+Either way it returns:
+
+```ts
+{
+  generatedAt: number;
+  bufferWindowSize: number;
+  eventTtlMs: number;
+  nodes: { id, name, file, role, density, redundant }[];
+  edges: { source, target, weight }[];
+  eventGroups: { sourceIds, occurrences, edges }[];
+}
+```
+
+A few things worth knowing about the shape:
+
+* `role` distinguishes real state (`local` / `context` / `store` / `proj`) from `effect` sources, virtual `event` triggers, and `unknown` (a graph edge with no recognized shape - e.g. a custom integration recording edges directly). `effect`, `event`, and `unknown` all have `density: null` - none of them has a real update history of its own.
+* `bufferWindowSize` and `eventTtlMs` are two different clocks: state nodes' `density` is measured over the last `bufferWindowSize` ticks, while virtual `event` nodes are pruned after `eventTtlMs` of inactivity. They're unrelated, so don't read one as describing the other.
+* User interactions are recorded as virtual, per-frame `event` triggers. Repeated interactions that produce the exact same fan-out (same targets, same weights) are collapsed into one entry in `eventGroups`, so clicking the same button 20 times doesn't produce 20 near-identical entries. `nodes` and `edges` remain the full, ungrouped data if you need it - the node/edge counts in the header above are always raw counts, not the number of lines shown after grouping.
+* Only nodes that appear on at least one edge are included - a registered variable that has never caused or received an update won't show up.
+
+This is meant for inspecting what Basis actually observed, building your own tooling on top of it, or attaching to a bug report - not as a second diagnostic layer alongside `printBasisReport()`.
+
 ### Runtime metrics
 
 You can inspect engine metrics with:
