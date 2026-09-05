@@ -48,6 +48,36 @@ export interface PerformanceMetrics {
   systemEntropy: number; 
 }
 
+export interface BasisGraphNode {
+  id: string;
+  name: string;
+  file: string;
+  role: SignalRole | 'event' | 'effect' | 'unknown';
+  density: number | null;
+  redundant: boolean;
+}
+
+export interface BasisGraphEdge {
+  source: string;
+  target: string;
+  weight: number;
+}
+
+export interface BasisEventGroup {
+  sourceIds: string[];
+  occurrences: number;
+  edges: BasisGraphEdge[];
+}
+
+export interface BasisGraphJSON {
+  generatedAt: number;
+  bufferWindowSize: number;
+  eventTtlMs: number;
+  nodes: BasisGraphNode[];
+  edges: BasisGraphEdge[];
+  eventGroups: BasisEventGroup[];
+}
+
 export interface BasisEngineState {
   config: { debug: boolean };
   history: Map<string, RingBufferMetadata>;

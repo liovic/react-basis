@@ -8,13 +8,18 @@ import {
   RingBufferMetadata,
   BasisEngineState,
   Entry,
-  ViolationDetail
+  ViolationDetail,
+  BasisGraphJSON,
+  BasisGraphNode,
+  BasisGraphEdge
 } from './core/types';
 import {
   WINDOW_SIZE,
   LOOP_THRESHOLD,
   VOLATILITY_THRESHOLD
 } from './core/constants';
+import { parseLabel, isEffectLabel } from './core/label';
+import { groupEventSources } from './core/graph';
 
 // --- Static Internal State ---
 
@@ -365,9 +370,58 @@ export const getBasisMetrics = () => ({
   entropy: instance.metrics.systemEntropy.toFixed(3)
 });
 
+export const getBasisGraph = (): BasisGraphJSON => {
+  const nodeIds = new Set<string>();
+  const edges: BasisGraphEdge[] = [];
+
+  instance.graph.forEach((targets, source) => {
+    nodeIds.add(source);
+    targets.forEach((weight, target) => {
+      nodeIds.add(target);
+      edges.push({ source, target, weight });
+    });
+  });
+
+  const nodes: BasisGraphNode[] = Array.from(nodeIds).map((id) => {
+    if (id.startsWith('Event_Tick_')) {
+      return { id, name: 'Event', file: '(shared trigger)', role: 'event', density: null, redundant: false };
+    }
+    const meta = instance.history.get(id);
+    const { file, name } = parseLabel(id);
+    if (!meta) {
+      const role = isEffectLabel(name) ? 'effect' : 'unknown';
+      return { id, name, file, role, density: null, redundant: false };
+    }
+    return {
+      id,
+      name,
+      file,
+      role: meta.role,
+      density: meta.density,
+      redundant: instance.redundantLabels.has(id)
+    };
+  });
+
+  return {
+    generatedAt: Date.now(),
+    bufferWindowSize: WINDOW_SIZE,
+    eventTtlMs: EVENT_TTL,
+    nodes,
+    edges,
+    eventGroups: groupEventSources(nodes, edges)
+  };
+};
+
+export const printBasisGraph = () => {
+  if (!instance.config.debug) return;
+  UI.displayGraphReport(getBasisGraph());
+};
+
 if (typeof window !== 'undefined') {
   (window as any).printBasisReport = printBasisHealthReport;
   (window as any).getBasisMetrics = getBasisMetrics;
+  (window as any).getBasisGraph = getBasisGraph;
+  (window as any).printBasisGraph = printBasisGraph;
 }
 
 export const __testEngine__ = {
@@ -380,5 +434,7 @@ export const __testEngine__ = {
   printBasisHealthReport,
   analyzeBasis,
   beginEffectTracking,
-  endEffectTracking
+  endEffectTracking,
+  getBasisGraph,
+  printBasisGraph
 };

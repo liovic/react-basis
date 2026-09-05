@@ -1,5 +1,7 @@
 // src/core/graph.ts
 
+import { BasisGraphNode, BasisGraphEdge, BasisEventGroup } from './types';
+
 export const calculateSpectralInfluence = (
   graph: Map<string, Map<string, number>>,
   maxIterations = 20,
@@ -48,4 +50,38 @@ export const calculateSpectralInfluence = (
   }
 
   return scores;
+};
+
+export const groupEventSources = (
+  nodes: BasisGraphNode[],
+  edges: BasisGraphEdge[]
+): BasisEventGroup[] => {
+  const outgoing = new Map<string, BasisGraphEdge[]>();
+  edges.forEach(e => {
+    if (!outgoing.has(e.source)) outgoing.set(e.source, []);
+    outgoing.get(e.source)!.push(e);
+  });
+
+  const eventSourceIds = nodes.filter(n => n.role === 'event').map(n => n.id);
+
+  const signatureOf = (sourceEdges: BasisGraphEdge[]) =>
+    sourceEdges
+      .map(e => `${e.target}@${e.weight}`)
+      .sort()
+      .join('|');
+
+  const buckets = new Map<string, string[]>();
+  eventSourceIds.forEach(id => {
+    const sig = signatureOf(outgoing.get(id) || []);
+    if (!buckets.has(sig)) buckets.set(sig, []);
+    buckets.get(sig)!.push(id);
+  });
+
+  const groups: BasisEventGroup[] = Array.from(buckets.values()).map(sourceIds => ({
+    sourceIds,
+    occurrences: sourceIds.length,
+    edges: (outgoing.get(sourceIds[0]) || []).slice()
+  }));
+
+  return groups.sort((a, b) => (b.edges.length - a.edges.length) || (b.occurrences - a.occurrences));
 };

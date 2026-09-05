@@ -2,9 +2,9 @@
 
 import { calculateCosineSimilarity } from "./math";
 import { identifyTopIssues } from "./ranker";
-import { RingBufferMetadata, SignalRole, RankedIssue, ViolationDetail } from "./types";
+import { RingBufferMetadata, SignalRole, RankedIssue, ViolationDetail, BasisGraphJSON, BasisGraphNode, BasisGraphEdge } from "./types";
 import { instance } from "../engine";
-import { parseLabel } from "./label";
+import { parseLabel, isEffectLabel } from "./label";
 
 const isWeb = typeof window !== 'undefined' && typeof window.document !== 'undefined';
 const LAST_LOG_TIMES = new Map<string, number>();
@@ -361,6 +361,129 @@ export const displayCausalHint = (targetLabel: string, targetMeta: RingBufferMet
       STYLES.label, ""
     );
   }
+  console.groupEnd();
+};
+
+const splitHookLine = (raw: string): { hook: string; line?: number } => {
+  const m = raw.match(/^(.*):(\d+)$/);
+  if (!m) return { hook: raw };
+  return { hook: m[1], line: Number(m[2]) };
+};
+
+const formatHook = (raw: string): string => {
+  const { hook } = splitHookLine(raw);
+  if (!isEffectLabel(hook)) return hook;
+  const lineMatch = hook.match(/L(\d+)$/);
+  return lineMatch ? `effect @ L${lineMatch[1]}` : 'effect (anonymous)';
+};
+
+const formatNode = (node?: BasisGraphNode, fallbackId = '?'): string => {
+  if (!node) return fallbackId;
+  if (node.role === 'event') return 'Event';
+  const hook = formatHook(node.name || node.id);
+  if (node.file && hook) return `${node.file} → ${hook}`;
+  return hook || node.id;
+};
+
+export const displayGraphReport = (graph: BasisGraphJSON) => {
+  if (!isWeb) return;
+  if (graph.nodes.length === 0) {
+    console.log(
+      `%c 📊 BASIS | CAUSAL GRAPH %c(no data yet)`,
+      STYLES.headerIdentity,
+      `color: ${THEME.muted}; font-style: italic;`
+    );
+    return;
+  }
+
+  const nodeById = new Map(graph.nodes.map(n => [n.id, n]));
+  const outgoing = new Map<string, BasisGraphEdge[]>();
+  graph.edges.forEach(e => {
+    if (!outgoing.has(e.source)) outgoing.set(e.source, []);
+    outgoing.get(e.source)!.push(e);
+  });
+
+  type Group = {
+    sourceIds: string[];
+    sourceNode: BasisGraphNode | undefined;
+    edges: BasisGraphEdge[];
+    occurrences: number;
+  };
+
+  const eventGroups: Group[] = graph.eventGroups.map(g => ({
+    sourceIds: g.sourceIds,
+    sourceNode: nodeById.get(g.sourceIds[0]),
+    edges: g.edges,
+    occurrences: g.occurrences
+  }));
+
+  const groupedSourceIds = new Set(graph.eventGroups.flatMap(g => g.sourceIds));
+  const nonEventGroups: Group[] = Array.from(outgoing.keys())
+    .filter(id => !groupedSourceIds.has(id))
+    .map(id => ({ sourceIds: [id], sourceNode: nodeById.get(id), edges: outgoing.get(id)!, occurrences: 1 }));
+
+  const groups: Group[] = [...eventGroups, ...nonEventGroups].sort(
+    (a, b) => (b.edges.length - a.edges.length) || (b.occurrences - a.occurrences)
+  );
+
+  console.group(
+    `%c 📊 BASIS | CAUSAL GRAPH %c${graph.nodes.length} nodes · ${graph.edges.length} edges · ${groups.length} sources · buffer window ${graph.bufferWindowSize}`,
+    STYLES.headerIdentity,
+    `color: ${THEME.muted}; font-weight: normal; font-style: italic;`
+  );
+  console.log(
+    `%cparent → child = observed cause → update. (×N) = times in this window. Event groups with the same fan-out are collapsed.`,
+    STYLES.subText
+  );
+
+  groups.forEach(group => {
+    const isEvent = group.sourceNode?.role === 'event';
+    const isCtx = group.sourceNode?.role === SignalRole.CONTEXT;
+    const isFx = group.sourceNode?.role === 'effect';
+    const isUnknown = group.sourceNode?.role === 'unknown';
+    const icon = isEvent ? '⚡' : isCtx ? 'Ω' : isFx ? '↯' : isUnknown ? '?' : '●';
+    const color = isEvent ? THEME.solution : isCtx ? THEME.context : THEME.identity;
+
+    const fanout = group.edges.length;
+    const hits = group.occurrences;
+    const hitLabel = hits > 1 ? ` · ×${hits}` : '';
+
+    const title = isEvent
+      ? `Event · ${fanout} target${fanout === 1 ? '' : 's'}${hitLabel}`
+      : formatNode(group.sourceNode, group.sourceIds[0]);
+
+    console.groupCollapsed(
+      `%c${icon} %c${title}`,
+      `color: ${color};`,
+      'font-family: monospace; font-weight: 600;'
+    );
+
+    group.edges
+      .slice()
+      .sort((a, b) => b.weight - a.weight)
+      .forEach(edge => {
+        const target = nodeById.get(edge.target);
+        const label = formatNode(target, edge.target);
+        const weight = edge.weight > 1 ? ` (×${edge.weight})` : '';
+        if (target?.redundant) {
+          console.log(
+            `%c  ${label}%c${weight} %credundant`,
+            `color: ${THEME.muted}; font-family: monospace;`,
+            `color: ${THEME.muted}; font-style: italic;`,
+            `color: ${THEME.problem}; font-weight: bold;`
+          );
+        } else {
+          console.log(
+            `%c  ${label}%c${weight}`,
+            `color: ${THEME.muted}; font-family: monospace;`,
+            `color: ${THEME.muted}; font-style: italic;`
+          );
+        }
+      });
+
+    console.groupEnd();
+  });
+
   console.groupEnd();
 };
 
