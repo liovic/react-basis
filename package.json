@@ -1,6 +1,6 @@
 {
   "name": "react-state-basis",
-  "version": "0.6.5",
+  "version": "0.6.6",
   "description": "Runtime state profiler for React that detects redundant state, update chains, and infinite loops by tracking when state updates happen.",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
