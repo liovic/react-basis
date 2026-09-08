@@ -1,8 +1,7 @@
 // src/core/analysis.ts
 
 import * as UI from './logger';
-import { calculateSimilarityCircular } from './math';
-import { SIMILARITY_THRESHOLD } from './constants';
+import { countOverlapsCircular, cosineFromOverlap, isSignificantOverlap } from './math';
 import { SignalRole, Entry, ViolationDetail } from './types';
 import { isSameField } from './label';
 
@@ -11,12 +10,15 @@ interface Similarities {
   bA: number;
   aB: number;
   max: number;
+  kSync: number;
+  kALeadsB: number;
+  kBLeadsA: number;
+  densityA: number;
+  densityB: number;
+  significantSync: boolean;
+  significantLead: boolean;
 }
 
-const CAUSAL_MARGIN = 0.05;
-
-// --- NOISE REDUCTION ---
-// Check if a node is directly driven by a Virtual Event.
 const isEventDriven = (label: string, graph: Map<string, Map<string, number>>): boolean => {
   for (const [parent, targets] of graph.entries()) {
     if (parent.startsWith('Event_Tick_') && targets.has(label)) {
@@ -27,31 +29,31 @@ const isEventDriven = (label: string, graph: Map<string, Map<string, number>>): 
 };
 
 const calculateAllSimilarities = (entryA: Entry, entryB: Entry): Similarities => {
-  const sync = calculateSimilarityCircular(
-    entryA.meta.buffer,
-    entryA.meta.head,
-    entryB.meta.buffer,
-    entryB.meta.head,
-    0
+  const { kSync, kALeadsB, kBLeadsA, densityA, densityB } = countOverlapsCircular(
+    entryA.meta.buffer, entryA.meta.head,
+    entryB.meta.buffer, entryB.meta.head
   );
 
-  const bA = calculateSimilarityCircular(
-    entryA.meta.buffer,
-    entryA.meta.head,
-    entryB.meta.buffer,
-    entryB.meta.head,
-    1
-  );
+  const sync = cosineFromOverlap(kSync, densityA, densityB);
+  const bA = cosineFromOverlap(kALeadsB, densityA, densityB);
+  const aB = cosineFromOverlap(kBLeadsA, densityA, densityB);
+  const max = Math.max(sync, bA, aB);
 
-  const aB = calculateSimilarityCircular(
-    entryA.meta.buffer,
-    entryA.meta.head,
-    entryB.meta.buffer,
-    entryB.meta.head,
-    -1
-  );
+  const windowSize = entryA.meta.buffer.length;
+  const significantSync = isSignificantOverlap(kSync, densityA, densityB, windowSize);
 
-  return { sync, bA, aB, max: Math.max(sync, bA, aB) };
+  const kLead = Math.max(kALeadsB, kBLeadsA);
+  const significantLead =
+    isSignificantOverlap(kLead, densityA, densityB, windowSize) &&
+    kLead >= kSync + 1;
+
+  return {
+    sync, bA, aB, max,
+    kSync, kALeadsB, kBLeadsA,
+    densityA, densityB,
+    significantSync,
+    significantLead,
+  };
 };
 
 const shouldSkipComparison = (
@@ -60,9 +62,7 @@ const shouldSkipComparison = (
   dirtyLabels: Set<string>
 ): boolean => {
   if (entryA.label === entryB.label) return true;
-
   if (isSameField(entryA.label, entryB.label)) return true;
-
   if (dirtyLabels.has(entryB.label) && entryA.label > entryB.label) return true;
   return false;
 };
@@ -98,24 +98,24 @@ const detectRedundancy = (
   const roleB = entryB.meta.role;
 
   if (isGlobalSource(roleA) && isGlobalSource(roleB)) return;
-  if (entryA.meta.density < 2 || entryB.meta.density < 2) return;
+  if (similarities.densityA < 2 || similarities.densityB < 2) return;
+
+  const score = similarities.sync;
 
   if (roleA === SignalRole.LOCAL && isGlobalSource(roleB)) {
     redundantSet.add(entryA.label);
-    pushViolation(violationMap, entryB.label, { type: 'context_mirror', target: entryA.label, similarity: similarities.max });
-    UI.displayRedundancyAlert(entryA.label, entryA.meta, entryB.label, entryB.meta, similarities.max);
-  }
-  else if (isGlobalSource(roleA) && roleB === SignalRole.LOCAL) {
+    pushViolation(violationMap, entryB.label, { type: 'context_mirror', target: entryA.label, similarity: score });
+    UI.displayRedundancyAlert(entryA.label, entryA.meta, entryB.label, entryB.meta, score);
+  } else if (isGlobalSource(roleA) && roleB === SignalRole.LOCAL) {
     redundantSet.add(entryB.label);
-    pushViolation(violationMap, entryA.label, { type: 'context_mirror', target: entryB.label, similarity: similarities.max });
-    UI.displayRedundancyAlert(entryB.label, entryB.meta, entryA.label, entryA.meta, similarities.max);
-  }
-  else if (roleA === SignalRole.LOCAL && roleB === SignalRole.LOCAL) {
+    pushViolation(violationMap, entryA.label, { type: 'context_mirror', target: entryB.label, similarity: score });
+    UI.displayRedundancyAlert(entryB.label, entryB.meta, entryA.label, entryA.meta, score);
+  } else if (roleA === SignalRole.LOCAL && roleB === SignalRole.LOCAL) {
     redundantSet.add(entryA.label);
     redundantSet.add(entryB.label);
-    pushViolation(violationMap, entryA.label, { type: 'duplicate_state', target: entryB.label, similarity: similarities.max });
-    pushViolation(violationMap, entryB.label, { type: 'duplicate_state', target: entryA.label, similarity: similarities.max });
-    UI.displayRedundancyAlert(entryA.label, entryA.meta, entryB.label, entryB.meta, similarities.max);
+    pushViolation(violationMap, entryA.label, { type: 'duplicate_state', target: entryB.label, similarity: score });
+    pushViolation(violationMap, entryB.label, { type: 'duplicate_state', target: entryA.label, similarity: score });
+    UI.displayRedundancyAlert(entryA.label, entryA.meta, entryB.label, entryB.meta, score);
   }
 };
 
@@ -128,29 +128,20 @@ const detectCausalLeak = (
 ): void => {
   if (entryA.isVolatile || entryB.isVolatile) return;
 
-  if (similarities.max - similarities.sync < CAUSAL_MARGIN) return;
-
   const addLeak = (source: string, target: string) => {
     if (isEventDriven(target, graph)) return;
 
-    if (!violationMap.has(source)) {
-      violationMap.set(source, []);
-    }
-    violationMap.get(source)!.push({ type: 'causal_leak', target });
-    
+    pushViolation(violationMap, source, { type: 'causal_leak', target });
+
     const sourceEntry = source === entryA.label ? entryA : entryB;
     const targetEntry = source === entryA.label ? entryB : entryA;
     UI.displayCausalHint(target, targetEntry.meta, source, sourceEntry.meta);
   };
 
-  // bA High = A[t] matches B[t+1]. A happens before B.
-  // Source: A, Target: B
-  if (similarities.bA === similarities.max) {
+  // Period-2 trains have equal lags. Still a lag vs sync; keep A→B like the old max check.
+  if (similarities.kALeadsB >= similarities.kBLeadsA) {
     addLeak(entryA.label, entryB.label);
-  }
-  // aB High = A[t+1] matches B[t]. B happens before A.
-  // Source: B, Target: A
-  else if (similarities.aB === similarities.max) {
+  } else {
     addLeak(entryB.label, entryA.label);
   }
 };
@@ -162,9 +153,9 @@ export const detectSubspaceOverlap = (
   dirtyLabels: Set<string>,
   graph: Map<string, Map<string, number>>
 ): { compCount: number; violationMap: Map<string, ViolationDetail[]> } => {
-  let compCount = 0;
   const violationMap = new Map<string, ViolationDetail[]>();
 
+  let compCount = 0;
   for (const entryA of dirtyEntries) {
     for (const entryB of allEntries) {
       if (shouldSkipComparison(entryA, entryB, dirtyLabels)) continue;
@@ -172,8 +163,10 @@ export const detectSubspaceOverlap = (
       compCount++;
       const similarities = calculateAllSimilarities(entryA, entryB);
 
-      if (similarities.max > SIMILARITY_THRESHOLD) {
+      if (similarities.significantSync) {
         detectRedundancy(entryA, entryB, similarities, redundantSet, violationMap);
+      }
+      if (similarities.significantLead) {
         detectCausalLeak(entryA, entryB, similarities, violationMap, graph);
       }
     }

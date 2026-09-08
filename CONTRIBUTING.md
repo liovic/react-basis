@@ -1,120 +1,87 @@
 # Contributing to react-state-basis
 
-Thank you for your interest in contributing to react-state-basis.
+Thanks for wanting to help.
 
-This project is a **deterministic runtime analysis engine**. Its primary goal is to reliably detect architectural issues in React applications based on how state behaves over time.
+Basis watches *when* React state updates, then flags patterns that are often worth a second look. Detection is a heuristic, not a proof. The goal is to stay honest about that and keep results stable enough that people can trust a report.
 
-To maintain correctness and long-term stability, contributions follow a **two-track model**.
-
----
-
-## Contribution Tracks
-
-### 1. Core Engine (Invariant-driven analysis)
-
-The core engine is responsible for all detection logic and guarantees.
-
-**Non-negotiable properties of the engine:**
-- Deterministic results (same input trace → same output, every run)
-- Reproducible analysis - no reliance on randomness or wall-clock timing in the detection math itself
-- Detection is heuristic by design (timing-correlation over a fixed window, compared against tuned thresholds) - that's not a bug to eliminate, it's the mechanism. What's non-negotiable is that any threshold or constant is documented with the reasoning/data behind it, not just handed down as a magic number.
-
-Changes to the core engine must preserve these invariants.
-
-#### Scope
-Files typically considered part of the core engine include:
-- `src/core.ts`
-- `src/engine/.ts`
-- Any logic that affects detection, comparison, or signal analysis
-
-#### Expectations
-Contributors working in this area are expected to:
-- Understand the existing invariants before proposing changes
-- Explain *why* a change preserves correctness
-- Avoid “close enough” logic, thresholds without justification, or empirical tuning
-
-If you are unsure whether a change belongs in the core engine, open an RFC issue first.
+You do not need to understand the engine to be useful here. Docs, examples, integrations, and HUD work are just as welcome.
 
 ---
 
-### 2. Ecosystem & Developer Experience
+## Two kinds of changes
 
-Contributions outside the core engine are **strongly encouraged** and do not require deep knowledge of the engine internals.
+### Engine / detection
 
-Examples include:
-- Framework integrations (Next.js, Remix, Webpack, etc.)
-- State library adapters (Zustand, Redux, Jotai)
-- HUD and visualization improvements
-- Tooling (CLI helpers, setup automation)
-- Documentation and examples
+This is the sensitive part: `src/engine.ts`, `src/core/analysis.ts`, `src/core/math.ts`, `src/core/constants.ts`, and anything else that decides whether two traces count as a hit.
 
-These contributions must not alter core analysis behavior.
+Same recorded trace should produce the same result. No randomness and no wall-clock in the detection math.
 
----
+The hit rule lives in `isSignificantOverlap()` (`src/core/math.ts`). Cosine is display-only - do not put a similarity cutoff back on the detect path. The numeric defaults are `PAIR_RARITY_TARGET` and `RELATIVE_OVERLAP_FLOOR` in `src/core/constants.ts`. If those turn out wrong, change the constant and say why.
 
-## Engineering Standards
+If you want to change detection behavior, an issue or a short RFC first is helpful.
 
-### Zero-Overhead Principle
-The engine must remain effectively invisible in production builds.
+### Everything else
 
-- No side effects outside development mode
-- No leakage into production exports
-- No runtime cost once disabled
-
-### Determinism First
-Auditing results must depend only on the recorded update trace, not on wall-clock timing, browser quirks, or execution order accidents outside that trace. The engine's *conclusions* (duplicate state, causal leak, etc.) are statistical inferences from that trace, not proofs - thresholds like SIMILARITY_THRESHOLD and CAUSAL_MARGIN should be justified in code comments or a linked doc when changed.
+Integrations, adapters, HUD, tooling, docs, examples - please jump in. These should not quietly change what the engine reports.
 
 ---
 
-## Workflow
+## A few things we care about
 
-- **Target branch:** `dev`
-  - Pull requests opened against `main` will be asked to retarget
-- **RFC first:** Required for changes affecting detection logic or engine behavior
-- **Atomic commits:** One pull request = one logical change
-- **Ghost Mode verification:** Ensure no changes leak into `production.ts` zero-op exports
+**Production stays quiet.** Development-only behavior should not leak into production exports or add cost when debug is off.
 
----
+**One rule in one place.** If you change how “significant overlap” is decided, change it in `isSignificantOverlap`, not in a second copy in the logger.
 
-## Local Development
+**Small PRs.** One idea per pull request is easier to review and easier to revert.
 
-Developing a React library that intercepts core hooks requires strict management of React instances. If the library and the example app use different React binaries, the engine will fail to initialize (resulting in an empty HUD or "Invalid Hook Call" errors).
-
-### The Recommended Workflow (Yalc)
-We prefer **Yalc** over `npm link` because it avoids symlink-related resolution issues in Vite.
-
-1.  **In the project root:**
-    ```bash
-    npm run build
-    yalc publish
-    ```
-2.  **In the `example` folder:**
-    ```bash
-    yalc add react-state-basis
-    npm install
-    npm run dev
-    ```
-
-### Using npm link (The "Singleton Wedding")
-If you prefer `npm link`, you must perform a "reverse link" to ensure the library and the app share the exact same React instance:
-
-1.  **Register the library:** (In project root)
-    ```bash
-    npm link
-    ```
-2.  **Link to the app:** (In `example` folder)
-    ```bash
-    npm link react-state-basis
-    ```
-3.  **The Marriage Step:** Force the library to use the app's React (In project root):
-    ```bash
-    npm link ./example/node_modules/react
-    npm link ./example/node_modules/react-dom
-    ```
+Target branch is `dev`. PRs against `main` will just get a polite “please retarget.”
 
 ---
 
-## Acknowledgements
-Contributors who provide significant architectural insights or build core integrations will be featured in the **Technical Acknowledgements** section of the project.
+## Local development
+
+Hook interception is picky about React instances. If the library and the demo app resolve different copies of React, you get an empty HUD or “Invalid Hook Call.”
+
+### Yalc (preferred)
+
+From the repo root:
+
+```bash
+npm run build
+yalc publish
+```
+
+In `examples/basis-react`:
+
+```bash
+yalc add react-state-basis
+npm install
+npm run dev
+```
+
+### npm link
+
+From the repo root:
+
+```bash
+npm link
+```
+
+In `examples/basis-react`:
+
+```bash
+npm link react-state-basis
+```
+
+Then, from the repo root, point the library at the app’s React:
+
+```bash
+npm link ./examples/basis-react/node_modules/react
+npm link ./examples/basis-react/node_modules/react-dom
+```
+
+---
+
+Questions are fine. If something in the engine is unclear, ask - the comments are supposed to explain the “why,” and if they do not, that is on us.
 
 — LP

@@ -358,9 +358,9 @@ export const endEffectTracking = () => {
   instance.currentEffectSource = null;
 };
 
-export const printBasisHealthReport = (threshold = 0.5) => {
+export const printBasisHealthReport = () => {
   if (!instance.config.debug) return;
-  UI.displayHealthReport(instance.history, threshold, instance.violationMap);
+  UI.displayHealthReport(instance.history, instance.violationMap);
 };
 
 export const getBasisMetrics = () => ({
