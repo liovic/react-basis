@@ -1,6 +1,6 @@
 // src/core/logger.ts
 
-import { calculateCosineSimilarity } from "./math";
+import { countOverlapsCircular, isSignificantOverlap } from "./math";
 import { identifyTopIssues } from "./ranker";
 import { RingBufferMetadata, SignalRole, RankedIssue, ViolationDetail, BasisGraphJSON, BasisGraphNode, BasisGraphEdge } from "./types";
 import { instance } from "../engine";
@@ -11,31 +11,24 @@ const LAST_LOG_TIMES = new Map<string, number>();
 const LOG_COOLDOWN = 3000;
 
 const THEME = {
-  identity: "#6C5CE7", // Purple (Brand)
-  problem: "#D63031", // Red (Bugs)
-  solution: "#FBC531", // Yellow (Fixes)
-  context: "#0984E3", // Blue (Locations)
-  muted: "#9AA0A6", // Gray (Metadata)
+  identity: "#6C5CE7",
+  problem: "#D63031",
+  solution: "#FBC531",
+  context: "#0984E3",
+  muted: "#9AA0A6",
   border: "#2E2E35",
-  success: "#00b894", // Green (Good Score)
+  success: "#00b894",
 };
 
 const STYLES = {
-  // Structure
   basis: `background: ${THEME.identity}; color: white; font-weight: bold; padding: 2px 6px; border-radius: 3px;`,
   headerIdentity: `background: ${THEME.identity}; color: white; font-weight: bold; padding: 4px 8px; border-radius: 4px;`,
   headerProblem: `background: ${THEME.problem}; color: white; font-weight: bold; padding: 4px 8px; border-radius: 4px;`,
   version: `background: #a29bfe; color: #2d3436; padding: 2px 6px; border-radius: 3px; margin-left: -4px;`,
-
-  // Actions
   actionLabel: `color: ${THEME.solution}; font-weight: bold;`,
   actionPill: `color: ${THEME.solution}; font-weight: bold; border: 1px solid ${THEME.solution}; padding: 0 4px; border-radius: 3px;`,
-
-  // Context
   impactLabel: `color: ${THEME.context}; font-weight: bold;`,
   location: `color: ${THEME.context}; font-family: monospace; font-weight: bold;`,
-
-  // Text
   subText: `color: ${THEME.muted}; font-size: 11px;`,
   bold: "font-weight: bold;",
   label: "background: #dfe6e9; color: #2d3436; padding: 0 4px; border-radius: 3px; font-family: monospace; font-weight: bold; border: 1px solid #b2bec3;",
@@ -51,14 +44,18 @@ const shouldLog = (key: string) => {
   return false;
 };
 
-// Helper: Detects boolean flags vs data
 const isBooleanLike = (name: string) =>
   /^(is|has|can|should|did|will|show|hide)(?=[A-Z_])/.test(name);
 
-// --- SUGGESTION LOGIC ---
-const getSuggestedFix = (issue: RankedIssue, info: { name: string }): string => {
+const areSyncSignificant = (metaA: RingBufferMetadata, metaB: RingBufferMetadata): boolean => {
+  const { kSync, densityA, densityB } = countOverlapsCircular(
+    metaA.buffer, metaA.head,
+    metaB.buffer, metaB.head
+  );
+  return isSignificantOverlap(kSync, densityA, densityB, metaA.buffer.length);
+};
 
-  // 1. GLOBAL EVENT (Split State)
+const getSuggestedFix = (issue: RankedIssue, info: { name: string }): string => {
   if (issue.label.includes('Global Event')) {
     return `These variables update together but live in different hooks/files. Consolidate them into a single %cuseReducer%c or atomic store update.`;
   }
@@ -68,29 +65,22 @@ const getSuggestedFix = (issue: RankedIssue, info: { name: string }): string => 
   const mirrors = violations.filter(v => v.type === 'context_mirror');
   const duplicates = violations.filter(v => v.type === 'duplicate_state');
 
-  // 2. CONTEXT MIRRORING (Shadow State)
   if (mirrors.length > 0) {
     return `Local state is 'shadowing' Global Context. This creates two sources of truth. ` +
       `Delete the local state and consume the %cContext%c value directly.`;
   }
 
-  // 3. EFFECT CHAINS (Double Render)
   if (leaks.length > 0) {
     const targetName = parseLabel(leaks[0].target).name;
-
-    // If driven by an Effect
     if (issue.label.includes('effect')) {
       return `This Effect triggers a synchronous re-render of ${targetName}. ` +
         `Calculate ${targetName} during the render phase (Derived State) or wrap in %cuseMemo%c if expensive.`;
     }
-    // If driven by State (A -> B)
     return `State cascading detected. ${info.name} triggers ${targetName} in a separate frame. ` +
       `Merge them into one object to update simultaneously.`;
   }
 
-  // 4. DUPLICATE STATE (Restored Logic)
   if (duplicates.length > 0) {
-    // Boolean Explosion Logic
     if (isBooleanLike(info.name)) {
       return `Boolean Explosion detected. Multiple flags are toggling in sync. ` +
         `Replace impossible states with a single %cstatus%c string ('idle' | 'loading' | 'success').`;
@@ -99,7 +89,6 @@ const getSuggestedFix = (issue: RankedIssue, info: { name: string }): string => 
       `Derive it from the source variable during render, or use %cuseMemo%c to cache the result.`;
   }
 
-  // 5. HIGH FREQUENCY
   if (issue.metric === 'density') {
     return `High-Frequency Update. This variable updates faster than the frame rate. ` +
       `Apply %cdebounce%c or move to a Ref to unblock the main thread.`;
@@ -108,8 +97,10 @@ const getSuggestedFix = (issue: RankedIssue, info: { name: string }): string => 
   return `Check the dependency chain of ${info.name}.`;
 };
 
-
-export const displayHealthReport = (history: Map<string, RingBufferMetadata>, threshold: number, violationMap: Map<string, ViolationDetail[]>) => {
+export const displayHealthReport = (
+  history: Map<string, RingBufferMetadata>,
+  violationMap: Map<string, ViolationDetail[]>
+) => {
   if (!isWeb) return;
   const entries = Array.from(history.entries());
   if (entries.length === 0) return;
@@ -118,7 +109,6 @@ export const displayHealthReport = (history: Map<string, RingBufferMetadata>, th
 
   console.group(`%c 📊 BASIS | ARCHITECTURAL HEALTH REPORT `, STYLES.headerIdentity);
 
-  // 1. REFACTOR PRIORITIES
   if (topIssues.length > 0) {
     console.log(`%c🎯 REFACTOR PRIORITIES %c(PRIME MOVERS)`,
       `font-weight: bold; color: ${THEME.identity}; margin-top: 10px;`,
@@ -128,7 +118,6 @@ export const displayHealthReport = (history: Map<string, RingBufferMetadata>, th
     topIssues.forEach((issue, idx) => {
       const info = parseLabel(issue.label);
       const icon = issue.metric === 'influence' ? '⚡' : '📈';
-
       const pColor = idx === 0 ? THEME.problem : idx === 1 ? THEME.solution : THEME.identity;
 
       let displayName = info.name;
@@ -148,7 +137,6 @@ export const displayHealthReport = (history: Map<string, RingBufferMetadata>, th
 
       console.log(`%c${issue.reason}`, `color: ${THEME.muted}; font-style: italic;`);
 
-      // IMPACTS: Grouped by File
       if (issue.violations.length > 0) {
         const byFile = new Map<string, string[]>();
 
@@ -170,7 +158,6 @@ export const displayHealthReport = (history: Map<string, RingBufferMetadata>, th
         }
       }
 
-      // SOLUTION
       const fix = getSuggestedFix(issue, info);
       const fixParts = fix.split('%c');
 
@@ -195,28 +182,24 @@ export const displayHealthReport = (history: Map<string, RingBufferMetadata>, th
     console.log("\n");
   }
 
-  // 2. EFFICIENCY SCORE
   const clusters: string[][] = [];
   const processed = new Set<string>();
   let independentCount = 0;
 
-  // A. Redundancy Check
   entries.forEach(([labelA, metaA]) => {
     if (processed.has(labelA)) return;
     const currentCluster = [labelA];
     processed.add(labelA);
     entries.forEach(([labelB, metaB]) => {
       if (labelA === labelB || processed.has(labelB)) return;
-      if (calculateCosineSimilarity(metaA.buffer, metaB.buffer) > threshold) {
-        if (metaA.role === SignalRole.CONTEXT && metaB.role === SignalRole.CONTEXT) return;
-        currentCluster.push(labelB);
-        processed.add(labelB);
-      }
+      if (!areSyncSignificant(metaA, metaB)) return;
+      if (metaA.role === SignalRole.CONTEXT && metaB.role === SignalRole.CONTEXT) return;
+      currentCluster.push(labelB);
+      processed.add(labelB);
     });
     if (currentCluster.length > 1) clusters.push(currentCluster); else independentCount++;
   });
 
-  // B. Causality Check (Graph Penalty)
   const totalVars = entries.length;
   const redundancyScore = ((independentCount + clusters.length) / totalVars) * 100;
 
@@ -238,7 +221,6 @@ export const displayHealthReport = (history: Map<string, RingBufferMetadata>, th
   );
   console.log(`%cSources of Truth: ${independentCount + clusters.length}/${totalVars} | Causal Leaks: ${internalEdges}`, STYLES.subText);
 
-  // 3. SYNC ISSUES
   if (clusters.length > 0) {
     console.log(`%cDetected ${clusters.length} Sync Issues:`, `font-weight: bold; color: ${THEME.problem}; margin-top: 10px;`);
 
@@ -290,8 +272,6 @@ export const displayHealthReport = (history: Map<string, RingBufferMetadata>, th
   console.groupEnd();
 };
 
-// --- LIVE STREAM LOGGERS ---
-
 export const displayRedundancyAlert = (labelA: string, metaA: RingBufferMetadata, labelB: string, metaB: RingBufferMetadata, sim: number) => {
   if (!isWeb || !shouldLog(`redundant-${labelA}-${labelB}`)) return;
   const infoA = parseLabel(labelA);
@@ -305,7 +285,7 @@ export const displayRedundancyAlert = (labelA: string, metaA: RingBufferMetadata
   const alertType = isContextMirror ? 'CONTEXT MIRRORING' : isStoreMirror ? 'STORE MIRRORING' : 'DUPLICATE STATE';
   console.group(`%c ♊ BASIS | ${alertType} `, STYLES.headerProblem);
   console.log(`%c📍 Location: %c${infoA.file}`, STYLES.bold, STYLES.location);
-  console.log(`%cIssue:%c ${infoA.name} and ${infoB.name} are synchronized (${(sim * 100).toFixed(0)}%).`, STYLES.bold, "");
+  console.log(`%cIssue:%c ${infoA.name} and ${infoB.name} overlapped on ${(sim * 100).toFixed(0)}% of aligned updates.`, STYLES.bold, "");
 
   if (isContextMirror || isStoreMirror) {
     const sourceType = isStoreMirror ? 'External Store' : 'Global Context';
